@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Loja {
+  id        String   @id @default(cuid())
+  nome      String
+  numero    Int
+  oriente   String
+  potencia  String   @default("GOB")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  irmaos       Irmao[]
+  sessoes      Sessao[]
+  transacoes   Transacao[]
+
+  @@map("lojas")
+}
+
+enum StatusIrmao {
+  ATIVO
+  ADORMECIDO
+  PLACET
+  IRREGULAR
+}
+
+enum Grau {
+  APRENDIZ
+  COMPANHEIRO
+  MESTRE
+}
+
+enum CargoLoja {
+  VENERAVEL
+  PRIMEIRO_VIGILANTE
+  SEGUNDO_VIGILANTE
+  ORADOR
+  SECRETARIO
+  TESOUREIRO
+  CHANCELER
+  MESTRE_CERIMONIAS
+  HOSPITALEIRO
+  ARQUITETO
+  BIBLIOTECARIO
+  DEPUTADO
+  MEMBRO
+}
+
+model Irmao {
+  id            String      @id @default(cuid())
+  nome          String
+  cim           String      @unique
+  cpf           String?     @unique
+  email         String?
+  telefone      String?
+  grau          Grau        @default(APRENDIZ)
+  cargo         CargoLoja   @default(MEMBRO)
+  status        StatusIrmao @default(ATIVO)
+  dataNasc      DateTime?   @map("data_nasc")
+  dataIniciacao DateTime?   @map("data_iniciacao")
+  lojaId        String      @map("loja_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  loja       Loja       @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  presencas  Presenca[]
+  transacoes Transacao[]
+
+  @@map("irmaos")
+}
+
+enum TipoSessao {
+  ORDINARIA
+  EXTRAORDINARIA
+  MAGNA
+  BRANCA
+  FUNEBRE
+}
+
+enum StatusSessao {
+  RASCUNHO
+  ABERTA
+  CONCLUIDA
+}
+
+model Sessao {
+  id        String       @id @default(cuid())
+  data      DateTime
+  tipo      TipoSessao   @default(ORDINARIA)
+  status    StatusSessao  @default(RASCUNHO)
+  tema      String?
+  descricao String?
+  pauta     String?
+  lojaId    String       @map("loja_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  loja      Loja       @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+  presencas Presenca[]
+
+  @@map("sessoes")
+}
+
+model Presenca {
+  id            String   @id @default(cuid())
+  presente      Boolean  @default(false)
+  justificativa String?
+  sessaoId      String   @map("sessao_id")
+  irmaoId       String   @map("irmao_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  sessao Sessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  irmao  Irmao  @relation(fields: [irmaoId], references: [id], onDelete: Cascade)
+
+  @@unique([sessaoId, irmaoId])
+  @@map("presencas")
+}
+
+enum TipoTransacao {
+  RECEITA
+  DESPESA
+}
+
+enum CategoriaReceita {
+  MENSALIDADE
+  METAIS
+  JOIA
+  TRONCO_BENEFICENCIA
+  CAPITACAO
+  OUTROS_RECEITA
+}
+
+enum CategoriaDespesa {
+  AGUA
+  LUZ
+  ALUGUEL
+  AGAPE
+  MATERIAL
+  MANUTENCAO
+  POTENCIA
+  OUTROS_DESPESA
+}
+
+model Transacao {
+  id               String            @id @default(cuid())
+  tipo             TipoTransacao
+  valor            Decimal           @db.Decimal(10, 2)
+  descricao        String
+  categoriaReceita CategoriaReceita? @map("categoria_receita")
+  categoriaDespesa CategoriaDespesa? @map("categoria_despesa")
+  dataVencimento   DateTime          @map("data_vencimento")
+  dataPagamento    DateTime?         @map("data_pagamento")
+  pago             Boolean           @default(false)
+  irmaoId          String?           @map("irmao_id")
+  lojaId           String            @map("loja_id")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  irmao Irmao? @relation(fields: [irmaoId], references: [id], onDelete: SetNull)
+  loja  Loja   @relation(fields: [lojaId], references: [id], onDelete: Cascade)
+
+  @@map("transacoes")
+}
