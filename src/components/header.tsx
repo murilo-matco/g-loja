@@ -25,10 +25,12 @@ import {
   Wallet,
   ChevronRight,
   CheckCheck,
+  Menu,
 } from "lucide-react";
 import { getSessoes } from "@/lib/presenca-store";
 import { getTransacoes } from "@/lib/financeiro-store";
 import { logout, getSession } from "@/lib/auth-store";
+import { useSidebar } from "@/components/sidebar-context";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -176,6 +178,7 @@ function NotifIcon({ name, variant }: { name: Notificacao["iconName"]; variant: 
 
 export function Header() {
   const router = useRouter();
+  const { toggleMobile } = useSidebar();
 
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
@@ -193,7 +196,6 @@ export function Header() {
   useEffect(() => {
     setNotificacoes(buildNotificacoes());
 
-    // Carrega dados da sessão autenticada
     const session = getSession();
     if (session) {
       setNomeLoja(session.nomeLoja);
@@ -201,7 +203,6 @@ export function Header() {
       setNomeUsuario(session.nome);
     }
 
-    // Sobrescreve com config local se existir
     const saved = localStorage.getItem("gloja-config");
     if (saved) {
       try {
@@ -215,7 +216,6 @@ export function Header() {
     }
   }, []);
 
-  // Close panels on outside click
   useEffect(() => {
     if (!bellOpen && !menuOpen) return;
     function handleClick(e: MouseEvent) {
@@ -254,19 +254,31 @@ export function Header() {
 
   return (
     <>
-      <header className="h-16 border-b border-border bg-background flex items-center justify-between px-6 shrink-0">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold truncate">{nomeLoja}</h2>
-          <p className="text-xs text-muted-foreground truncate">{oriente}</p>
+      <header className="h-14 md:h-16 border-b border-border bg-background flex items-center justify-between px-3 md:px-6 shrink-0 gap-2">
+        {/* Left: hamburger + lodge info */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden shrink-0 h-9 w-9"
+            onClick={toggleMobile}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="min-w-0">
+            <h2 className="text-sm md:text-lg font-semibold truncate">{nomeLoja}</h2>
+            <p className="text-[10px] md:text-xs text-muted-foreground truncate">{oriente}</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right: bell + avatar */}
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
           {/* ── Sininho de Notificações ── */}
           <div ref={bellRef} className="relative">
             <Button
               variant="ghost"
               size="icon"
-              className="relative"
+              className="relative h-9 w-9"
               onClick={() => setBellOpen((o) => !o)}
             >
               <Bell className="h-[18px] w-[18px]" />
@@ -278,7 +290,7 @@ export function Header() {
             </Button>
 
             {bellOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 z-50 rounded-lg border bg-popover text-popover-foreground shadow-lg">
+              <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm z-50 rounded-lg border bg-popover text-popover-foreground shadow-lg">
                 <div className="flex items-center justify-between px-3 py-2 border-b">
                   <span className="text-xs font-medium text-muted-foreground">Notificações</span>
                   {naoLidas > 0 && (
@@ -306,14 +318,10 @@ export function Header() {
                       <NotifIcon name={n.iconName} variant={n.variant} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium leading-tight">{n.titulo}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {n.descricao}
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{n.descricao}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0 pt-0.5">
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                          {n.tempo}
-                        </span>
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">{n.tempo}</span>
                         {n.href && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                       </div>
                     </button>
@@ -327,7 +335,7 @@ export function Header() {
           <div ref={menuRef} className="relative">
             <Button
               variant="ghost"
-              className="flex items-center gap-2 px-2"
+              className="flex items-center gap-2 px-2 h-9"
               onClick={() => { setMenuOpen((o) => !o); setBellOpen(false); }}
             >
               <Avatar className="h-8 w-8">
@@ -335,12 +343,11 @@ export function Header() {
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium hidden md:inline">{nomeUsuario}</span>
+              <span className="text-sm font-medium hidden lg:inline max-w-[120px] truncate">{nomeUsuario}</span>
             </Button>
 
             {menuOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 z-50 rounded-lg border bg-popover text-popover-foreground shadow-lg overflow-hidden">
-                {/* Cabeçalho do perfil */}
                 <div className="px-4 py-3 bg-muted/30 border-b">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
@@ -355,7 +362,6 @@ export function Header() {
                   </div>
                 </div>
 
-                {/* Opções */}
                 <div className="py-1">
                   <button
                     type="button"
@@ -407,17 +413,11 @@ export function Header() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="cfg-oriente">Oriente / Obediência</Label>
-              <Input
-                id="cfg-oriente"
-                value={oriente}
-                onChange={(e) => setOriente(e.target.value)}
-              />
+              <Input id="cfg-oriente" value={oriente} onChange={(e) => setOriente(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfig(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setShowConfig(false)}>Cancelar</Button>
             <Button onClick={salvarConfig}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
@@ -447,17 +447,11 @@ export function Header() {
             <hr className="border-border" />
             <div className="space-y-2">
               <Label htmlFor="perfil-nome">Nome de exibição</Label>
-              <Input
-                id="perfil-nome"
-                value={nomeUsuario}
-                onChange={(e) => setNomeUsuario(e.target.value)}
-              />
+              <Input id="perfil-nome" value={nomeUsuario} onChange={(e) => setNomeUsuario(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPerfil(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setShowPerfil(false)}>Cancelar</Button>
             <Button onClick={salvarPerfil}>Salvar</Button>
           </DialogFooter>
         </DialogContent>

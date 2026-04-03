@@ -118,14 +118,14 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Irmãos Ativos</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalAtivos}</div>
+            <div className="text-lg md:text-2xl font-bold">{totalAtivos}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {totalAdormecidos > 0 ? `${totalAdormecidos} adormecido${totalAdormecidos !== 1 ? "s" : ""}` : "Todos ativos"}
             </p>
@@ -140,14 +140,14 @@ export default function DashboardPage() {
           <CardContent>
             {proximaSessao ? (
               <>
-                <div className="text-2xl font-bold">{formatDateShort(proximaSessao.data)}</div>
+                <div className="text-lg md:text-2xl font-bold">{formatDateShort(proximaSessao.data)}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {TIPO_SESSAO_LABELS[proximaSessao.tipo]} — <span className="capitalize">{formatWeekday(proximaSessao.data)}</span>
                 </p>
               </>
             ) : (
               <>
-                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <div className="text-lg md:text-2xl font-bold text-muted-foreground">—</div>
                 <p className="text-xs text-muted-foreground mt-1">Nenhuma sessão futura</p>
               </>
             )}
@@ -160,7 +160,7 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-500 tabular-nums">
+            <div className="text-lg md:text-2xl font-bold text-emerald-600 dark:text-emerald-500 tabular-nums">
               {formatBRL(receitasMes)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Arrecadação do período</p>
@@ -173,7 +173,7 @@ export default function DashboardPage() {
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-500 tabular-nums">
+            <div className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-500 tabular-nums">
               {formatBRL(despesasMes)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -187,7 +187,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom cards */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Próximas Sessões */}
         <Card>
           <CardHeader>

@@ -270,17 +270,17 @@ export default function FinanceiroPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Receitas</CardTitle>
             <TrendingUp className="size-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-500 tabular-nums">
+            <p className="text-lg md:text-2xl font-bold text-emerald-600 dark:text-emerald-500 tabular-nums">
               {formatBRL(totalReceitas)}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">{receitas.length} lançamento(s)</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1">{receitas.length} lançamento(s)</p>
           </CardContent>
         </Card>
         <Card>
@@ -289,10 +289,10 @@ export default function FinanceiroPage() {
             <TrendingDown className="size-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-500 tabular-nums">
+            <p className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-500 tabular-nums">
               {formatBRL(totalDespesas)}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">{despesas.length} lançamento(s)</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1">{despesas.length} lançamento(s)</p>
           </CardContent>
         </Card>
         <Card>
@@ -302,12 +302,12 @@ export default function FinanceiroPage() {
           </CardHeader>
           <CardContent>
             <p className={cn(
-              "text-2xl font-bold tabular-nums",
+              "text-lg md:text-2xl font-bold tabular-nums",
               saldo >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
             )}>
               {formatBRL(saldo)}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Receitas − despesas</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1">Receitas − despesas</p>
           </CardContent>
         </Card>
         <Card>
@@ -316,10 +316,10 @@ export default function FinanceiroPage() {
             <Clock className="size-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+            <p className="text-lg md:text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
               {pendentes}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">lançamento(s) a pagar/receber</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1">lançamento(s) a pagar/receber</p>
           </CardContent>
         </Card>
       </div>
@@ -584,26 +584,29 @@ function TransacaoTable({
         <TableHeader>
           <TableRow>
             <TableHead>Descrição</TableHead>
-            <TableHead>Categoria</TableHead>
-            {tipo === "RECEITA" && <TableHead>Irmão</TableHead>}
+            <TableHead className="hidden md:table-cell">Categoria</TableHead>
+            {tipo === "RECEITA" && <TableHead className="hidden lg:table-cell">Irmão</TableHead>}
             <TableHead className="text-right">Valor</TableHead>
-            <TableHead>Vencimento</TableHead>
+            <TableHead className="hidden sm:table-cell">Vencimento</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="w-[100px] text-right">Ações</TableHead>
+            <TableHead className="w-[80px] md:w-[100px] text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.id}>
-              <TableCell className="max-w-[220px] font-medium">{row.descricao}</TableCell>
-              <TableCell>{categoriaLabel(tipo, row.categoria)}</TableCell>
+              <TableCell className="max-w-[220px] font-medium">
+                <span>{row.descricao}</span>
+                <span className="block text-xs text-muted-foreground sm:hidden">{formatDateBR(row.vencimento)}</span>
+              </TableCell>
+              <TableCell className="hidden md:table-cell">{categoriaLabel(tipo, row.categoria)}</TableCell>
               {tipo === "RECEITA" && (
-                <TableCell className="text-muted-foreground">{row.irmao ?? "—"}</TableCell>
+                <TableCell className="hidden lg:table-cell text-muted-foreground">{row.irmao ?? "—"}</TableCell>
               )}
               <TableCell className="text-right tabular-nums font-semibold">
                 {formatBRL(row.valor)}
               </TableCell>
-              <TableCell className="tabular-nums">{formatDateBR(row.vencimento)}</TableCell>
+              <TableCell className="hidden sm:table-cell tabular-nums">{formatDateBR(row.vencimento)}</TableCell>
               <TableCell>
                 <StatusBadge status={row.status} onClick={() => onToggleStatus(row.id)} />
               </TableCell>

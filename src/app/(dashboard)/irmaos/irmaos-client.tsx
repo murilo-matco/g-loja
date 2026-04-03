@@ -292,18 +292,18 @@ export function IrmaosClient() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>CIM</TableHead>
-                  <TableHead>Grau</TableHead>
+                  <TableHead className="hidden md:table-cell">CIM</TableHead>
+                  <TableHead className="hidden lg:table-cell">Grau</TableHead>
                   <TableHead>Cargo</TableHead>
                   <TableHead>Status</TableHead>
-                  {admin && <TableHead>Acesso</TableHead>}
-                  <TableHead className="w-[100px] text-right">Ações</TableHead>
+                  {admin && <TableHead className="hidden sm:table-cell">Acesso</TableHead>}
+                  <TableHead className="w-[80px] md:w-[100px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={admin ? 7 : 6} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={99} className="h-24 text-center text-muted-foreground">
                       Nenhum irmão encontrado com os filtros atuais.
                     </TableCell>
                   </TableRow>
@@ -316,9 +316,12 @@ export function IrmaosClient() {
 
                     return (
                       <TableRow key={row.id} className={cn(user && !user.ativo && "opacity-60")}>
-                        <TableCell className="font-medium">{row.nome}</TableCell>
-                        <TableCell>{row.cim}</TableCell>
-                        <TableCell>{GRAU_LABELS[row.grau] ?? row.grau}</TableCell>
+                        <TableCell className="font-medium">
+                          <span>{row.nome}</span>
+                          <span className="block text-xs text-muted-foreground md:hidden">{row.cim}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">{row.cim}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{GRAU_LABELS[row.grau] ?? row.grau}</TableCell>
                         <TableCell>{CARGO_LABELS[row.cargo] ?? row.cargo}</TableCell>
                         <TableCell>
                           <Badge variant={statusBadgeVariant(row.status)}>
@@ -327,7 +330,7 @@ export function IrmaosClient() {
                         </TableCell>
 
                         {admin && (
-                          <TableCell>
+                          <TableCell className="hidden sm:table-cell">
                             {isVeneravel ? (
                               <Badge variant="outline" className="gap-1 text-primary border-primary/30">
                                 <ShieldCheck className="h-3 w-3" />
