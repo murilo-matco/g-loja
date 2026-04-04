@@ -47,13 +47,18 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
+  FileImage,
+  FileText,
   Loader2,
+  Paperclip,
   Pencil,
   Plus,
   Trash2,
   TrendingDown,
   TrendingUp,
+  Upload,
   Wallet,
+  X,
 } from "lucide-react";
 import {
   getTransacoes,
@@ -66,6 +71,7 @@ import {
   type StatusPagamento,
 } from "@/lib/financeiro-store";
 import { getIrmaos } from "@/lib/irmaos-store";
+import { getAnexos, uploadAnexo, excluirAnexo, contarAnexos, type Anexo } from "@/lib/anexos-store";
 
 // ─── Formatters ─────────────────────────────────────────────
 
@@ -145,10 +151,22 @@ export default function FinanceiroPage() {
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<Transacao | null>(null);
 
+  // Anexos
+  const [anexoTarget, setAnexoTarget] = useState<Transacao | null>(null);
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const [anexosLoading, setAnexosLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErro, setUploadErro] = useState("");
+  const [anexoCounts, setAnexoCounts] = useState<Record<string, number>>({});
+
   useEffect(() => {
     async function load() {
-      setTransacoes(await getTransacoes());
+      const txs = await getTransacoes();
+      setTransacoes(txs);
       setNomesIrmaos(await loadNomesIrmaos());
+      if (txs.length > 0) {
+        setAnexoCounts(await contarAnexos(txs.map((t) => t.id)));
+      }
       setLoading(false);
     }
     load();
@@ -240,6 +258,48 @@ export default function FinanceiroPage() {
     await toggleStatus(id);
     setTransacoes(await getTransacoes());
   }, []);
+
+  const openAnexos = useCallback(async (t: Transacao) => {
+    setAnexoTarget(t);
+    setAnexosLoading(true);
+    setUploadErro("");
+    const list = await getAnexos(t.id);
+    setAnexos(list);
+    setAnexosLoading(false);
+  }, []);
+
+  const handleUploadFiles = useCallback(async (files: FileList | null) => {
+    if (!files || !anexoTarget) return;
+    setUploading(true);
+    setUploadErro("");
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          setUploadErro("Arquivo muito grande (máx. 10MB).");
+          continue;
+        }
+        await uploadAnexo(anexoTarget.id, file);
+      }
+      const updated = await getAnexos(anexoTarget.id);
+      setAnexos(updated);
+      const txs = await getTransacoes();
+      setTransacoes(txs);
+      setAnexoCounts(await contarAnexos(txs.map((t) => t.id)));
+    } catch (err) {
+      setUploadErro(err instanceof Error ? err.message : "Erro no upload.");
+    }
+    setUploading(false);
+  }, [anexoTarget]);
+
+  const handleDeleteAnexo = useCallback(async (id: string) => {
+    await excluirAnexo(id);
+    if (anexoTarget) {
+      setAnexos(await getAnexos(anexoTarget.id));
+      const txs = await getTransacoes();
+      setTransacoes(txs);
+      setAnexoCounts(await contarAnexos(txs.map((t) => t.id)));
+    }
+  }, [anexoTarget]);
 
   // ── Loading ───────────────────────────────────────────────
 
@@ -353,6 +413,8 @@ export default function FinanceiroPage() {
                 onEdit={openEdit}
                 onDelete={setDeleteDialog}
                 onToggleStatus={handleToggleStatus}
+                onAnexos={openAnexos}
+                anexoCounts={anexoCounts}
               />
             </TabsContent>
             <TabsContent value="despesas" className="mt-0">
@@ -362,6 +424,8 @@ export default function FinanceiroPage() {
                 onEdit={openEdit}
                 onDelete={setDeleteDialog}
                 onToggleStatus={handleToggleStatus}
+                onAnexos={openAnexos}
+                anexoCounts={anexoCounts}
               />
             </TabsContent>
           </Tabs>
@@ -554,6 +618,111 @@ export default function FinanceiroPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Anexos Dialog ─────────────────────────────────── */}
+      <Dialog open={!!anexoTarget} onOpenChange={(open) => !open && setAnexoTarget(null)}>
+        <DialogContent className="sm:max-w-lg" showCloseButton>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Paperclip className="size-5 text-primary" />
+              Anexos
+            </DialogTitle>
+            <DialogDescription>
+              {anexoTarget?.descricao} — {anexoTarget ? formatBRL(anexoTarget.valor) : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Upload area */}
+            <label className={cn(
+              "flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 cursor-pointer transition-colors",
+              uploading ? "border-primary/50 bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+            )}>
+              {uploading ? (
+                <>
+                  <Loader2 className="size-8 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Enviando...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="size-8 text-muted-foreground/60" />
+                  <span className="text-sm text-muted-foreground">
+                    Clique ou arraste arquivos aqui
+                  </span>
+                  <span className="text-[11px] text-muted-foreground/60">
+                    Imagens (JPG, PNG) ou PDF — máx. 10MB cada
+                  </span>
+                </>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*,.pdf"
+                multiple
+                disabled={uploading}
+                onChange={(e) => handleUploadFiles(e.target.files)}
+              />
+            </label>
+
+            {uploadErro && (
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-sm text-red-600">
+                {uploadErro}
+              </div>
+            )}
+
+            {/* Existing attachments */}
+            {anexosLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : anexos.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum anexo. Faça upload de notas fiscais, comprovantes ou recibos.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {anexos.map((a) => (
+                  <div key={a.id} className="flex items-center gap-3 rounded-lg border p-2.5 group">
+                    {a.tipo === "image" ? (
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                        <img
+                          src={a.url}
+                          alt={a.nome}
+                          className="h-12 w-12 rounded object-cover border"
+                        />
+                      </a>
+                    ) : (
+                      <a href={a.url} target="_blank" rel="noopener noreferrer"
+                         className="flex h-12 w-12 items-center justify-center rounded bg-muted shrink-0">
+                        {a.tipo === "pdf" ? <FileText className="size-6 text-red-500" /> : <FileImage className="size-6 text-blue-500" />}
+                      </a>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <a href={a.url} target="_blank" rel="noopener noreferrer"
+                         className="text-sm font-medium truncate block hover:underline">
+                        {a.nome}
+                      </a>
+                      <p className="text-[11px] text-muted-foreground">
+                        {a.tipo === "image" ? "Imagem" : a.tipo === "pdf" ? "PDF" : "Arquivo"}
+                        {a.tamanho > 0 && ` — ${(a.tamanho / 1024).toFixed(0)} KB`}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteAnexo(a.id)}
+                      aria-label="Remover anexo"
+                    >
+                      <X className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -566,12 +735,16 @@ function TransacaoTable({
   onEdit,
   onDelete,
   onToggleStatus,
+  onAnexos,
+  anexoCounts,
 }: {
   rows: Transacao[];
   tipo: TipoTransacao;
   onEdit: (t: Transacao) => void;
   onDelete: (t: Transacao) => void;
   onToggleStatus: (id: string) => void;
+  onAnexos: (t: Transacao) => void;
+  anexoCounts: Record<string, number>;
 }) {
   if (rows.length === 0) {
     return (
@@ -615,6 +788,14 @@ function TransacaoTable({
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
+                  <Button variant="ghost" size="icon-sm" aria-label="Anexos" onClick={() => onAnexos(row)} className="relative">
+                    <Paperclip className="size-4" />
+                    {(anexoCounts[row.id] ?? 0) > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                        {anexoCounts[row.id]}
+                      </span>
+                    )}
+                  </Button>
                   <Button variant="ghost" size="icon-sm" aria-label="Editar" onClick={() => onEdit(row)}>
                     <Pencil className="size-4" />
                   </Button>

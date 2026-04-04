@@ -49,6 +49,7 @@ import {
   CalendarDays,
   AlertTriangle,
   Loader2,
+  Paperclip,
 } from "lucide-react";
 import {
   getSessoes,
@@ -60,6 +61,7 @@ import {
   getTransacoes,
   type Transacao,
 } from "@/lib/financeiro-store";
+import { getAnexosMulti, type Anexo } from "@/lib/anexos-store";
 
 // ═══════════════════════════════════════════════════════════════
 // Formatters
@@ -177,6 +179,7 @@ export default function RelatoriosPage() {
 
   // Finance data from store
   const [allTransacoes, setAllTransacoes] = useState<Transacao[]>([]);
+  const [allAnexos, setAllAnexos] = useState<Record<string, Anexo[]>>({});
 
   useEffect(() => {
     async function load() {
@@ -187,7 +190,11 @@ export default function RelatoriosPage() {
       }
       setAllSessoes(sessoes);
       setAllPresencas(presMap);
-      setAllTransacoes(await getTransacoes());
+      const txs = await getTransacoes();
+      setAllTransacoes(txs);
+      if (txs.length > 0) {
+        setAllAnexos(await getAnexosMulti(txs.map((t) => t.id)));
+      }
       setLoaded(true);
     }
     load();
@@ -682,7 +689,15 @@ export default function RelatoriosPage() {
                           <TableBody>
                             {grupo.itens.map((row) => (
                               <TableRow key={row.id}>
-                                <TableCell className="max-w-[280px]">{row.descricao}</TableCell>
+                                <TableCell className="max-w-[280px]">
+                                  <span>{row.descricao}</span>
+                                  {(allAnexos[row.id]?.length ?? 0) > 0 && (
+                                    <span className="inline-flex items-center gap-0.5 ml-2 text-xs text-muted-foreground">
+                                      <Paperclip className="size-3" />
+                                      {allAnexos[row.id].length}
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell>{formatDateBR(row.vencimento)}</TableCell>
                                 <TableCell><StatusBadge status={row.status} /></TableCell>
                                 <TableCell className="text-right tabular-nums">{formatBRL(row.valor)}</TableCell>
@@ -723,7 +738,15 @@ export default function RelatoriosPage() {
                           <TableBody>
                             {grupo.itens.map((row) => (
                               <TableRow key={row.id}>
-                                <TableCell className="max-w-[280px]">{row.descricao}</TableCell>
+                                <TableCell className="max-w-[280px]">
+                                  <span>{row.descricao}</span>
+                                  {(allAnexos[row.id]?.length ?? 0) > 0 && (
+                                    <span className="inline-flex items-center gap-0.5 ml-2 text-xs text-muted-foreground">
+                                      <Paperclip className="size-3" />
+                                      {allAnexos[row.id].length}
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell>{formatDateBR(row.vencimento)}</TableCell>
                                 <TableCell><StatusBadge status={row.status} /></TableCell>
                                 <TableCell className="text-right tabular-nums">{formatBRL(row.valor)}</TableCell>
