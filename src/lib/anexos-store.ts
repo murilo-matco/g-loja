@@ -29,7 +29,7 @@ function detectTipo(file: File): "image" | "pdf" | "other" {
   return "other";
 }
 
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dx4dgjub";
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dx4dgjuib";
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "gloja-anexos";
 
 async function uploadToCloudinary(blob: Blob, fileName: string): Promise<string> {
