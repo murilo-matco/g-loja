@@ -704,7 +704,6 @@ export default function FinanceiroPage() {
                       </a>
                       <p className="text-[11px] text-muted-foreground">
                         {a.tipo === "image" ? "Imagem" : a.tipo === "pdf" ? "PDF" : "Arquivo"}
-                        {a.tamanho > 0 && ` — ${(a.tamanho / 1024).toFixed(0)} KB`}
                       </p>
                     </div>
                     <Button

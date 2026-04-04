@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { compressImage, isImage } from "@/lib/image-compress";
+import { getLojaId } from "@/lib/auth-store";
 
 export interface Anexo {
   id: string;
@@ -7,7 +8,6 @@ export interface Anexo {
   nome: string;
   url: string;
   tipo: "image" | "pdf" | "other";
-  tamanho: number;
   criadoEm: string;
 }
 
@@ -19,7 +19,6 @@ function mapRow(row: any): Anexo {
     nome: row.nome,
     url: row.url,
     tipo: row.tipo,
-    tamanho: row.tamanho ?? 0,
     criadoEm: row.criado_em,
   };
 }
@@ -30,13 +29,12 @@ function detectTipo(file: File): "image" | "pdf" | "other" {
   return "other";
 }
 
-async function uploadToCloudinary(blob: Blob, fileName: string): Promise<string> {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dx4dgjub";
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "gloja-anexos";
 
-  if (!cloudName || !preset) {
-    throw new Error("Cloudinary não configurado. Adicione NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME e NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.");
-  }
+async function uploadToCloudinary(blob: Blob, fileName: string): Promise<string> {
+  const cloudName = CLOUDINARY_CLOUD_NAME;
+  const preset = CLOUDINARY_UPLOAD_PRESET;
 
   const fd = new FormData();
   fd.append("file", blob, fileName);
@@ -86,6 +84,9 @@ export async function getAnexosMulti(transacaoIds: string[]): Promise<Record<str
 }
 
 export async function uploadAnexo(transacaoId: string, file: File): Promise<Anexo> {
+  const lojaId = getLojaId();
+  if (!lojaId) throw new Error("Sessão inválida.");
+
   const tipo = detectTipo(file);
   const blob = tipo === "image" ? await compressImage(file) : file;
   const url = await uploadToCloudinary(blob, file.name);
@@ -94,10 +95,10 @@ export async function uploadAnexo(transacaoId: string, file: File): Promise<Anex
     .from("anexos")
     .insert({
       transacao_id: transacaoId,
+      loja_id: lojaId,
       nome: file.name,
       url,
       tipo,
-      tamanho: blob.size,
     })
     .select()
     .single();
