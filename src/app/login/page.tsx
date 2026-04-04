@@ -53,6 +53,11 @@ export default function LoginPage() {
   const [senhaOriginal, setSenhaOriginal] = useState("");
   const [erroTroca, setErroTroca] = useState("");
 
+  // Acesso admin da plataforma
+  const [showAdminGate, setShowAdminGate] = useState(false);
+  const [adminKey, setAdminKey] = useState("");
+  const [adminErro, setAdminErro] = useState("");
+
   // Cadastro
   const [cadCnpj, setCadCnpj] = useState("");
   const [cadNome, setCadNome] = useState("");
@@ -270,15 +275,66 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-5 pt-5 border-t border-slate-700/50 text-center">
-              <p className="text-xs text-slate-500 mb-3">Ainda não tem uma loja cadastrada?</p>
-              <Button
-                variant="outline"
-                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white gap-2"
-                onClick={() => setModo("cadastro")}
-              >
-                <Building2 className="h-4 w-4" />
-                Cadastrar Nova Loja
-              </Button>
+              {!showAdminGate ? (
+                <button
+                  type="button"
+                  className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
+                  onClick={() => setShowAdminGate(true)}
+                >
+                  Área administrativa
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500">Insira a chave de administrador</p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      placeholder="Chave master"
+                      value={adminKey}
+                      onChange={(e) => { setAdminKey(e.target.value); setAdminErro(""); }}
+                      className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500 text-sm h-9"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (adminKey === (process.env.NEXT_PUBLIC_ADMIN_KEY || "gloja-admin-2026")) {
+                            setModo("cadastro");
+                            setShowAdminGate(false);
+                            setAdminKey("");
+                          } else {
+                            setAdminErro("Chave inválida.");
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        if (adminKey === (process.env.NEXT_PUBLIC_ADMIN_KEY || "gloja-admin-2026")) {
+                          setModo("cadastro");
+                          setShowAdminGate(false);
+                          setAdminKey("");
+                        } else {
+                          setAdminErro("Chave inválida.");
+                        }
+                      }}
+                    >
+                      OK
+                    </Button>
+                  </div>
+                  {adminErro && (
+                    <p className="text-xs text-red-400">{adminErro}</p>
+                  )}
+                  <button
+                    type="button"
+                    className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
+                    onClick={() => { setShowAdminGate(false); setAdminKey(""); setAdminErro(""); }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
