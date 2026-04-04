@@ -24,7 +24,7 @@ export const CARGO_SISTEMA_LABELS: Record<CargoSistema, string> = {
 };
 
 export const PERMISSOES: Record<CargoSistema, string[]> = {
-  VENERAVEL: ["/", "/irmaos", "/sessoes", "/presenca", "/financeiro", "/relatorios"],
+  VENERAVEL: ["/", "/irmaos", "/sessoes", "/presenca", "/financeiro", "/relatorios", "/configuracoes"],
   CHANCELER: ["/", "/presenca"],
   TESOUREIRO: ["/", "/financeiro"],
   SECRETARIO: ["/", "/irmaos", "/sessoes", "/relatorios"],
@@ -350,4 +350,68 @@ export function formatIdentificador(value: string): string {
 
 export function getSenhaPadrao(): string {
   return SENHA_PADRAO;
+}
+
+// ─── Loja CRUD ──────────────────────────────────────────────
+
+export async function getLojaAtual(): Promise<Loja | null> {
+  const lojaId = getLojaId();
+  if (!lojaId) return null;
+  const { data } = await supabase.from("lojas").select("*").eq("id", lojaId).limit(1);
+  return data?.[0] ?? null;
+}
+
+export async function atualizarLoja(id: string, input: { nome?: string; cnpj?: string; oriente?: string; nome_admin?: string }): Promise<{ ok: boolean; erro?: string }> {
+  if (input.cnpj) {
+    const clean = input.cnpj.replace(/\D/g, "");
+    if (clean.length !== 14) return { ok: false, erro: "CNPJ deve ter 14 dígitos." };
+    const { data: existing } = await supabase.from("lojas").select("id").eq("cnpj", formatCNPJ(clean));
+    if (existing?.some((l: { id: string }) => l.id !== id)) {
+      return { ok: false, erro: "Já existe uma loja com este CNPJ." };
+    }
+    input.cnpj = formatCNPJ(clean);
+  }
+
+  const { error } = await supabase.from("lojas").update(input).eq("id", id);
+  if (error) return { ok: false, erro: error.message };
+
+  const session = getSession();
+  if (session && session.lojaId === id) {
+    if (input.nome) session.nomeLoja = input.nome;
+    if (input.oriente) session.oriente = input.oriente;
+    if (input.nome_admin) session.nome = input.nome_admin;
+    saveSession(session);
+  }
+
+  return { ok: true };
+}
+
+export async function cadastrarLoja(input: {
+  cnpj: string;
+  senha: string;
+  nome: string;
+  oriente: string;
+  nomeAdmin: string;
+}): Promise<{ ok: true; lojaId: string } | { ok: false; erro: string }> {
+  const clean = input.cnpj.replace(/\D/g, "");
+  if (clean.length !== 14) return { ok: false, erro: "CNPJ deve ter 14 dígitos." };
+  if (input.senha.length < 6) return { ok: false, erro: "Senha deve ter ao menos 6 caracteres." };
+  if (!input.nome.trim()) return { ok: false, erro: "Nome da loja é obrigatório." };
+
+  const { data: existing } = await supabase.from("lojas").select("id").eq("cnpj", formatCNPJ(clean));
+  if (existing && existing.length > 0) {
+    return { ok: false, erro: "Já existe uma loja com este CNPJ." };
+  }
+
+  const { data, error } = await supabase.from("lojas").insert({
+    cnpj: formatCNPJ(clean),
+    senha: input.senha,
+    nome: input.nome.trim(),
+    oriente: input.oriente.trim(),
+    nome_admin: input.nomeAdmin.trim() || "Ven.·. Mestre",
+    primeiro_acesso: false,
+  }).select().single();
+
+  if (error || !data) return { ok: false, erro: error?.message ?? "Erro ao cadastrar." };
+  return { ok: true, lojaId: data.id };
 }
