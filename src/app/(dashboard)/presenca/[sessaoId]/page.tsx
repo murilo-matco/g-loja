@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useTransition, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -106,7 +106,6 @@ export default function ChamadaPage() {
   const [search, setSearch] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<"concluir" | "reabrir" | null>(null);
   const [sessaoStatus, setSessaoStatus] = useState<StatusSessao>("RASCUNHO");
-  const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
 
   const [justificativaAberta, setJustificativaAberta] = useState<string | null>(null);
@@ -114,23 +113,26 @@ export default function ChamadaPage() {
 
   // Load data from store on mount
   useEffect(() => {
-    const sessao = getSessao(sessaoId);
-    if (!sessao) {
+    async function load() {
+      const sessao = await getSessao(sessaoId);
+      if (!sessao) {
+        setLoading(false);
+        return;
+      }
+
+      setSessaoInfo(sessao);
+      setSessaoStatus(sessao.status);
+
+      let lista = await getPresencas(sessaoId);
+      if (lista.length === 0 && sessao.status !== "CONCLUIDA") {
+        lista = await inicializarPresencas(sessaoId);
+        setSessaoStatus("ABERTA");
+      }
+
+      setPresencas(lista);
       setLoading(false);
-      return;
     }
-
-    setSessaoInfo(sessao);
-    setSessaoStatus(sessao.status);
-
-    let lista = getPresencas(sessaoId);
-    if (lista.length === 0 && sessao.status !== "CONCLUIDA") {
-      lista = inicializarPresencas(sessaoId);
-      setSessaoStatus("ABERTA");
-    }
-
-    setPresencas(lista);
-    setLoading(false);
+    load();
   }, [sessaoId]);
 
   const editavel = sessaoStatus !== "CONCLUIDA";
@@ -153,7 +155,7 @@ export default function ChamadaPage() {
     (updater: (prev: PresencaStore[]) => PresencaStore[]) => {
       setPresencas((prev) => {
         const next = updater(prev);
-        salvarPresencas(sessaoId, next);
+        salvarPresencas(sessaoId, next); // fire-and-forget (async but we don't await)
         return next;
       });
     },
@@ -230,21 +232,17 @@ export default function ChamadaPage() {
     persistAndSet((prev) => prev.map((p) => ({ ...p, presente: false })));
   }, [editavel, persistAndSet]);
 
-  const handleConcluir = () => {
-    startTransition(() => {
-      storeConcluirSessao(sessaoId, presencas);
-      setSessaoStatus("CONCLUIDA");
-      setConfirmDialog(null);
-      setJustificativaAberta(null);
-    });
+  const handleConcluir = async () => {
+    await storeConcluirSessao(sessaoId, presencas);
+    setSessaoStatus("CONCLUIDA");
+    setConfirmDialog(null);
+    setJustificativaAberta(null);
   };
 
-  const handleReabrir = () => {
-    startTransition(() => {
-      storeReabrirSessao(sessaoId);
-      setSessaoStatus("ABERTA");
-      setConfirmDialog(null);
-    });
+  const handleReabrir = async () => {
+    await storeReabrirSessao(sessaoId);
+    setSessaoStatus("ABERTA");
+    setConfirmDialog(null);
   };
 
   // ─── Loading ────────────────────────────────────────────
@@ -314,12 +312,12 @@ export default function ChamadaPage() {
 
           <div className="flex gap-2 shrink-0">
             {editavel ? (
-              <Button onClick={() => setConfirmDialog("concluir")} className="gap-2" disabled={isPending}>
+              <Button onClick={() => setConfirmDialog("concluir")} className="gap-2">
                 <Save className="h-4 w-4" />
                 <span className="hidden sm:inline">Salvar e </span>Concluir
               </Button>
             ) : (
-              <Button variant="outline" onClick={() => setConfirmDialog("reabrir")} className="gap-2" disabled={isPending}>
+              <Button variant="outline" onClick={() => setConfirmDialog("reabrir")} className="gap-2">
                 <RotateCcw className="h-4 w-4" />
                 Reabrir
               </Button>
@@ -605,7 +603,7 @@ export default function ChamadaPage() {
                 </span>
               )}
             </div>
-            <Button onClick={() => setConfirmDialog("concluir")} className="gap-2" disabled={isPending}>
+            <Button onClick={() => setConfirmDialog("concluir")} className="gap-2">
               <Save className="h-4 w-4" />
               Concluir
             </Button>
@@ -650,7 +648,7 @@ export default function ChamadaPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialog(null)}>Cancelar</Button>
-            <Button onClick={handleConcluir} disabled={isPending} className="gap-2">
+            <Button onClick={handleConcluir} className="gap-2">
               <Lock className="h-4 w-4" />
               Confirmar e Concluir
             </Button>
@@ -669,7 +667,7 @@ export default function ChamadaPage() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDialog(null)}>Cancelar</Button>
-            <Button onClick={handleReabrir} disabled={isPending} className="gap-2">
+            <Button onClick={handleReabrir} className="gap-2">
               <RotateCcw className="h-4 w-4" />
               Reabrir Sessão
             </Button>

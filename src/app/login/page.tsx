@@ -65,7 +65,7 @@ export default function LoginPage() {
 
     await new Promise((r) => setTimeout(r, 600));
 
-    const result = login(identificador, senha);
+    const result = await login(identificador, senha);
     setLoading(false);
 
     if (!result.ok) {
@@ -73,7 +73,7 @@ export default function LoginPage() {
       return;
     }
 
-    if (isPrimeiroAcesso(identificador)) {
+    if (await isPrimeiroAcesso(identificador)) {
       setSenhaOriginal(senha);
       setShowTrocaSenha(true);
       return;
@@ -82,7 +82,7 @@ export default function LoginPage() {
     router.replace("/");
   }
 
-  function handleTrocarSenha() {
+  async function handleTrocarSenha() {
     setErroTroca("");
 
     if (novaSenha.length < 6) {
@@ -95,8 +95,8 @@ export default function LoginPage() {
     }
 
     const result = isCnpj
-      ? alterarSenhaLoja(identificador, senhaOriginal, novaSenha)
-      : alterarSenhaUsuario(identificador, senhaOriginal, novaSenha);
+      ? await alterarSenhaLoja(identificador, senhaOriginal, novaSenha)
+      : await alterarSenhaUsuario(identificador, senhaOriginal, novaSenha);
 
     if (!result.ok) {
       setErroTroca(result.erro ?? "Erro ao alterar senha.");

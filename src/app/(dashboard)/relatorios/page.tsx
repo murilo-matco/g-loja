@@ -179,15 +179,18 @@ export default function RelatoriosPage() {
   const [allTransacoes, setAllTransacoes] = useState<Transacao[]>([]);
 
   useEffect(() => {
-    const sessoes = getSessoes();
-    const presMap: Record<string, PresencaStore[]> = {};
-    for (const s of sessoes) {
-      presMap[s.id] = getPresencas(s.id);
+    async function load() {
+      const sessoes = await getSessoes();
+      const presMap: Record<string, PresencaStore[]> = {};
+      for (const s of sessoes) {
+        presMap[s.id] = await getPresencas(s.id);
+      }
+      setAllSessoes(sessoes);
+      setAllPresencas(presMap);
+      setAllTransacoes(await getTransacoes());
+      setLoaded(true);
     }
-    setAllSessoes(sessoes);
-    setAllPresencas(presMap);
-    setAllTransacoes(getTransacoes());
-    setLoaded(true);
+    load();
   }, []);
 
   const periodoLabel = `${MESES.find((m) => m.valor === mes)?.nome ?? ""} de ${ano}`;

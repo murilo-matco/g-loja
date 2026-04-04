@@ -83,12 +83,12 @@ const VARIANT_STYLES: Record<string, string> = {
 
 // ─── Build notifications ────────────────────────────────────
 
-function buildNotificacoes(): Notificacao[] {
+async function buildNotificacoes(): Promise<Notificacao[]> {
   const notifs: Notificacao[] = [];
   const hoje = todayISO();
 
   try {
-    const sessoes = getSessoes();
+    const sessoes = await getSessoes();
     const futuras = sessoes
       .filter((s) => s.data >= hoje)
       .sort((a, b) => a.data.localeCompare(b.data));
@@ -130,7 +130,7 @@ function buildNotificacoes(): Notificacao[] {
   }
 
   try {
-    const tx = getTransacoes();
+    const tx = await getTransacoes();
     const vencidos = tx.filter((t) => t.status === "PENDENTE" && t.vencimento <= hoje);
     if (vencidos.length > 0) {
       notifs.push({
@@ -194,7 +194,7 @@ export function Header() {
   const [nomeUsuario, setNomeUsuario] = useState("Ven.·. Mestre");
 
   useEffect(() => {
-    setNotificacoes(buildNotificacoes());
+    buildNotificacoes().then(setNotificacoes);
 
     const session = getSession();
     if (session) {

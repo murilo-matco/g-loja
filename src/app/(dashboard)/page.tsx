@@ -70,32 +70,35 @@ export default function DashboardPage() {
   const [despesasMes, setDespesasMes] = useState(0);
 
   useEffect(() => {
-    const hoje = todayISO();
-    const [anoHoje, mesHoje] = hoje.split("-").map(Number);
+    async function loadData() {
+      const hoje = todayISO();
+      const [anoHoje, mesHoje] = hoje.split("-").map(Number);
 
-    // Irmãos
-    const irmaos = getIrmaos();
-    setTotalAtivos(irmaos.filter((i) => i.status === "ATIVO").length);
-    setTotalAdormecidos(irmaos.filter((i) => i.status === "ADORMECIDO").length);
+      // Irmãos
+      const irmaos = await getIrmaos();
+      setTotalAtivos(irmaos.filter((i) => i.status === "ATIVO").length);
+      setTotalAdormecidos(irmaos.filter((i) => i.status === "ADORMECIDO").length);
 
-    // Sessões futuras (data > hoje) ordenadas por data crescente
-    const sessoes = getSessoes();
-    const futuras = sessoes
-      .filter((s) => s.data > hoje)
-      .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-    setProximasSessoes(futuras.slice(0, 5));
-    setProximaSessao(futuras[0] ?? null);
+      // Sessões futuras (data > hoje) ordenadas por data crescente
+      const sessoes = await getSessoes();
+      const futuras = sessoes
+        .filter((s) => s.data > hoje)
+        .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+      setProximasSessoes(futuras.slice(0, 5));
+      setProximaSessao(futuras[0] ?? null);
 
-    // Finanças do mês atual
-    const transacoes = getTransacoes();
-    const doMes = transacoes.filter((t) => {
-      const [y, m] = t.vencimento.split("-").map(Number);
-      return y === anoHoje && m === mesHoje;
-    });
-    setReceitasMes(doMes.filter((t) => t.tipo === "RECEITA").reduce((s, t) => s + t.valor, 0));
-    setDespesasMes(doMes.filter((t) => t.tipo === "DESPESA").reduce((s, t) => s + t.valor, 0));
+      // Finanças do mês atual
+      const transacoes = await getTransacoes();
+      const doMes = transacoes.filter((t) => {
+        const [y, m] = t.vencimento.split("-").map(Number);
+        return y === anoHoje && m === mesHoje;
+      });
+      setReceitasMes(doMes.filter((t) => t.tipo === "RECEITA").reduce((s, t) => s + t.valor, 0));
+      setDespesasMes(doMes.filter((t) => t.tipo === "DESPESA").reduce((s, t) => s + t.valor, 0));
 
-    setLoaded(true);
+      setLoaded(true);
+    }
+    loadData();
   }, []);
 
   if (!loaded) {

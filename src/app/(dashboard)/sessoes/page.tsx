@@ -112,12 +112,14 @@ export default function SessoesPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<SessaoStore | null>(null);
 
-  function reload() {
-    setSessoes(getSessoes());
+  async function reload() {
+    setSessoes(await getSessoes());
     setLoading(false);
   }
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    reload();
+  }, []);
 
   const sorted = useMemo(
     () => [...sessoes].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()),
@@ -148,7 +150,7 @@ export default function SessoesPage() {
     setDialogOpen(true);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.data.trim()) return;
 
@@ -161,21 +163,21 @@ export default function SessoesPage() {
     };
 
     if (editingId) {
-      atualizarSessao(editingId, data);
+      await atualizarSessao(editingId, data);
     } else {
-      criarSessao(data);
+      await criarSessao(data);
     }
 
     setDialogOpen(false);
     resetForm();
-    reload();
+    await reload();
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTarget) return;
-    excluirSessao(deleteTarget.id);
+    await excluirSessao(deleteTarget.id);
     setDeleteTarget(null);
-    reload();
+    await reload();
   }
 
   if (loading) {

@@ -96,16 +96,19 @@ export default function PresencaPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const hoje = todayISO();
-    const raw = getSessoes();
-    const enriched: SessaoEnriquecida[] = raw
-      .map((s) => {
-        const resumo = getResumoPresenca(s.id);
-        return { ...s, presentes: resumo.presentes, total: resumo.total, passada: s.data <= hoje };
-      })
-      .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
-    setSessoes(enriched);
-    setLoading(false);
+    async function load() {
+      const hoje = todayISO();
+      const raw = await getSessoes();
+      const enriched: SessaoEnriquecida[] = [];
+      for (const s of raw) {
+        const resumo = await getResumoPresenca(s.id);
+        enriched.push({ ...s, presentes: resumo.presentes, total: resumo.total, passada: s.data <= hoje });
+      }
+      enriched.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+      setSessoes(enriched);
+      setLoading(false);
+    }
+    load();
   }, []);
 
   const sessoesPassadas = sessoes.filter((s) => s.passada);

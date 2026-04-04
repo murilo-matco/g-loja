@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -63,14 +63,32 @@ export default function EditarIrmaoPage() {
   const params = useParams<{ id: string }>();
   const routeId = params.id;
 
-  const irmao = useMemo(
-    () => getIrmao(routeId) ?? null,
-    [routeId]
-  );
+  const [irmao, setIrmao] = useState<Irmao | null>(null);
+  const [loadingIrmao, setLoadingIrmao] = useState(true);
 
-  const [form, setForm] = useState<FormFields>(() =>
-    irmao ? irmaoToForm(irmao) : { nome: "", cim: "", cpf: "", email: "", telefone: "", grau: "APRENDIZ", cargo: "MEMBRO", status: "ATIVO", dataNasc: "", dataIniciacao: "" }
-  );
+  const [form, setForm] = useState<FormFields>({
+    nome: "",
+    cim: "",
+    cpf: "",
+    email: "",
+    telefone: "",
+    grau: "APRENDIZ",
+    cargo: "MEMBRO",
+    status: "ATIVO",
+    dataNasc: "",
+    dataIniciacao: "",
+  });
+
+  useEffect(() => {
+    getIrmao(routeId).then((i) => {
+      setIrmao(i ?? null);
+      setLoadingIrmao(false);
+    });
+  }, [routeId]);
+
+  useEffect(() => {
+    if (irmao) setForm(irmaoToForm(irmao));
+  }, [irmao]);
 
   const tituloNome = irmao?.nome ?? "Irmão não encontrado";
 
@@ -81,9 +99,9 @@ export default function EditarIrmaoPage() {
       setForm((prev) => ({ ...prev, [field]: value }));
     };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    atualizarIrmao(routeId, {
+    await atualizarIrmao(routeId, {
       nome: form.nome.trim(),
       cim: form.cim.trim(),
       cpf: form.cpf.trim() || null,
@@ -97,6 +115,14 @@ export default function EditarIrmaoPage() {
     });
     router.push("/irmaos");
   };
+
+  if (loadingIrmao) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-muted-foreground">Carregando…</p>
+      </div>
+    );
+  }
 
   if (!irmao) {
     return (

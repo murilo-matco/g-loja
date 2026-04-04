@@ -79,9 +79,9 @@ const formatDateBR = (iso: string) => {
 
 // ─── Helpers ────────────────────────────────────────────────
 
-function loadNomesIrmaos(): string[] {
+async function loadNomesIrmaos(): Promise<string[]> {
   if (typeof window === "undefined") return [];
-  return getIrmaos().map((i) => i.nome);
+  return (await getIrmaos()).map((i) => i.nome);
 }
 
 function categoriaLabel(tipo: TipoTransacao, key: string) {
@@ -146,9 +146,12 @@ export default function FinanceiroPage() {
   const [deleteDialog, setDeleteDialog] = useState<Transacao | null>(null);
 
   useEffect(() => {
-    setTransacoes(getTransacoes());
-    setNomesIrmaos(loadNomesIrmaos());
-    setLoading(false);
+    async function load() {
+      setTransacoes(await getTransacoes());
+      setNomesIrmaos(await loadNomesIrmaos());
+      setLoading(false);
+    }
+    load();
   }, []);
 
   // ── Derived data ──────────────────────────────────────────
@@ -201,7 +204,7 @@ export default function FinanceiroPage() {
     setForm((prev) => ({ ...prev, tipo, categoria: firstCat, irmao: "" }));
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const valor = parseFloat(form.valor);
     if (!form.descricao.trim() || isNaN(valor) || valor <= 0 || !form.vencimento) return;
 
@@ -216,26 +219,26 @@ export default function FinanceiroPage() {
     };
 
     if (editingId) {
-      atualizarTransacao(editingId, data);
+      await atualizarTransacao(editingId, data);
     } else {
-      criarTransacao(data);
+      await criarTransacao(data);
     }
 
-    setTransacoes(getTransacoes());
+    setTransacoes(await getTransacoes());
     setDialogOpen(false);
     resetForm();
   }, [form, editingId, resetForm]);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = useCallback(async () => {
     if (!deleteDialog) return;
-    excluirTransacao(deleteDialog.id);
-    setTransacoes(getTransacoes());
+    await excluirTransacao(deleteDialog.id);
+    setTransacoes(await getTransacoes());
     setDeleteDialog(null);
   }, [deleteDialog]);
 
-  const handleToggleStatus = useCallback((id: string) => {
-    toggleStatus(id);
-    setTransacoes(getTransacoes());
+  const handleToggleStatus = useCallback(async (id: string) => {
+    await toggleStatus(id);
+    setTransacoes(await getTransacoes());
   }, []);
 
   // ── Loading ───────────────────────────────────────────────

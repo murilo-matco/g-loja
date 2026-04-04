@@ -63,9 +63,9 @@ export default function NovoIrmaoPage() {
       setForm((prev) => ({ ...prev, [field]: value }));
     };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    criarIrmao({
+    await criarIrmao({
       nome: form.nome.trim(),
       cim: form.cim.trim(),
       cpf: form.cpf.trim() || null,

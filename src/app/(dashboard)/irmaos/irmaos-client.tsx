@@ -137,9 +137,9 @@ export function IrmaosClient() {
   const [senhaReset, setSenhaReset] = useState("");
   const [erroAcesso, setErroAcesso] = useState("");
 
-  function reload() {
-    setRows(getIrmaos());
-    setUsuarios(getUsuarios());
+  async function reload() {
+    setRows(await getIrmaos());
+    setUsuarios(await getUsuarios());
   }
 
   useEffect(() => {
@@ -175,10 +175,10 @@ export function IrmaosClient() {
     [pathname, router, searchParams]
   );
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    excluirIrmao(deleteTarget.id);
-    reload();
+    await excluirIrmao(deleteTarget.id);
+    await reload();
     setDeleteTarget(null);
   };
 
@@ -194,7 +194,7 @@ export function IrmaosClient() {
     return null;
   }
 
-  function handleConcederAcesso() {
+  async function handleConcederAcesso() {
     if (!showConcederAcesso?.cpf) return;
     setErroAcesso("");
     if (senhaAcesso.trim().length < 4) {
@@ -202,35 +202,35 @@ export function IrmaosClient() {
       return;
     }
     const cargo = cargoToSistema(showConcederAcesso.cargo) ?? "CHANCELER";
-    const result = criarUsuario({ cpf: showConcederAcesso.cpf, nome: showConcederAcesso.nome, cargo, senha: senhaAcesso.trim() });
+    const result = await criarUsuario({ cpf: showConcederAcesso.cpf, nome: showConcederAcesso.nome, cargo, senha: senhaAcesso.trim() });
     if (!result.ok) { setErroAcesso(result.erro); return; }
     setShowConcederAcesso(null);
     setSenhaAcesso("");
-    reload();
+    await reload();
   }
 
-  function handleRevogarAcesso() {
+  async function handleRevogarAcesso() {
     if (!showRevogarAcesso) return;
     const user = getUsuarioByIrmao(showRevogarAcesso);
-    if (user) excluirUsuario(user.id);
+    if (user) await excluirUsuario(user.id);
     setShowRevogarAcesso(null);
-    reload();
+    await reload();
   }
 
-  function handleResetSenha() {
+  async function handleResetSenha() {
     if (!showResetSenha) return;
     const user = getUsuarioByIrmao(showResetSenha);
-    if (user) resetarSenhaUsuario(user.id, senhaReset.trim() || undefined);
+    if (user) await resetarSenhaUsuario(user.id, senhaReset.trim() || undefined);
     setShowResetSenha(null);
     setSenhaReset("");
-    reload();
+    await reload();
   }
 
-  function handleToggleAtivo(irmao: Irmao) {
+  async function handleToggleAtivo(irmao: Irmao) {
     const user = getUsuarioByIrmao(irmao);
     if (user) {
-      atualizarUsuario(user.id, { ativo: !user.ativo });
-      reload();
+      await atualizarUsuario(user.id, { ativo: !user.ativo });
+      await reload();
     }
   }
 
