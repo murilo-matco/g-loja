@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { isLoggedIn, temPermissao } from "@/lib/auth-store";
+import { cleanupOldData } from "@/lib/cleanup";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +17,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
+
+    cleanupOldData();
 
     if (!temPermissao(pathname)) {
       setState("denied");
