@@ -9,7 +9,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from "firebase/firestore";
 import { getLojaId } from "@/lib/auth-store";
@@ -45,9 +44,9 @@ function mapRow(id: string, data: any): Transacao {
 export async function getTransacoes(): Promise<Transacao[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const q = query(collection(db, "transacoes"), where("loja_id", "==", lojaId), orderBy("criado_em", "desc"));
+  const q = query(collection(db, "transacoes"), where("loja_id", "==", lojaId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapRow(d.id, d.data()));
+  return snap.docs.map((d) => mapRow(d.id, d.data())).sort((a, b) => b.id.localeCompare(a.id));
 }
 
 export async function criarTransacao(t: Omit<Transacao, "id">): Promise<Transacao> {

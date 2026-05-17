@@ -9,7 +9,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   limit,
   serverTimestamp,
 } from "firebase/firestore";
@@ -281,7 +280,7 @@ const SENHA_PADRAO = "gloja123";
 export async function getUsuarios(): Promise<Usuario[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const q = query(collection(db, "usuarios"), where("loja_id", "==", lojaId), orderBy("criado_em", "desc"));
+  const q = query(collection(db, "usuarios"), where("loja_id", "==", lojaId));
   const snap = await getDocs(q);
   return snap.docs.map((d) => mapUsuario({ id: d.id, ...d.data() }));
 }

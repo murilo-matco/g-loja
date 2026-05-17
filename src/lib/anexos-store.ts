@@ -7,7 +7,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from "firebase/firestore";
 import { compressImage, isImage } from "@/lib/image-compress";
@@ -64,8 +63,7 @@ async function uploadToCloudinary(blob: Blob, fileName: string): Promise<string>
 export async function getAnexos(transacaoId: string): Promise<Anexo[]> {
   const q = query(
     collection(db, "anexos"),
-    where("transacao_id", "==", transacaoId),
-    orderBy("criado_em", "desc")
+    where("transacao_id", "==", transacaoId)
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => {
@@ -78,7 +76,7 @@ export async function getAnexos(transacaoId: string): Promise<Anexo[]> {
       tipo: data.tipo,
       criadoEm: tsToString(data.criado_em),
     };
-  });
+  }).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
 }
 
 export async function getAnexosMulti(transacaoIds: string[]): Promise<Record<string, Anexo[]>> {
@@ -90,8 +88,7 @@ export async function getAnexosMulti(transacaoIds: string[]): Promise<Record<str
     const batch = transacaoIds.slice(i, i + batchSize);
     const q = query(
       collection(db, "anexos"),
-      where("transacao_id", "in", batch),
-      orderBy("criado_em", "desc")
+      where("transacao_id", "in", batch)
     );
     const snap = await getDocs(q);
     for (const d of snap.docs) {

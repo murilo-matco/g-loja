@@ -9,7 +9,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
@@ -47,7 +46,7 @@ export interface PresencaStore {
 export async function getSessoes(): Promise<SessaoStore[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const q = query(collection(db, "sessoes"), where("loja_id", "==", lojaId), orderBy("data", "desc"));
+  const q = query(collection(db, "sessoes"), where("loja_id", "==", lojaId));
   const snap = await getDocs(q);
   return snap.docs.map((d) => {
     const data = d.data();
@@ -60,7 +59,7 @@ export async function getSessoes(): Promise<SessaoStore[]> {
       descricao: data.descricao ?? null,
       pauta: data.pauta ?? null,
     };
-  });
+  }).sort((a, b) => b.data.localeCompare(a.data));
 }
 
 export async function getSessao(id: string): Promise<SessaoStore | undefined> {
@@ -133,7 +132,7 @@ export async function excluirSessao(id: string): Promise<boolean> {
 // ─── Presenças ──────────────────────────────────────────────
 
 export async function getPresencas(sessaoId: string): Promise<PresencaStore[]> {
-  const q = query(collection(db, "presencas"), where("sessao_id", "==", sessaoId), orderBy("nome"));
+  const q = query(collection(db, "presencas"), where("sessao_id", "==", sessaoId));
   const snap = await getDocs(q);
   return snap.docs.map((d) => {
     const data = d.data();
@@ -147,7 +146,7 @@ export async function getPresencas(sessaoId: string): Promise<PresencaStore[]> {
       presente: data.presente,
       justificativa: data.justificativa ?? null,
     };
-  });
+  }).sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 export async function inicializarPresencas(sessaoId: string): Promise<PresencaStore[]> {

@@ -9,7 +9,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from "firebase/firestore";
 import { getLojaId } from "@/lib/auth-store";
@@ -35,9 +34,9 @@ function mapRow(id: string, data: any): Irmao {
 export async function getIrmaos(): Promise<Irmao[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const q = query(collection(db, "irmaos"), where("loja_id", "==", lojaId), orderBy("nome"));
+  const q = query(collection(db, "irmaos"), where("loja_id", "==", lojaId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapRow(d.id, d.data()));
+  return snap.docs.map((d) => mapRow(d.id, d.data())).sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 export async function getIrmao(id: string): Promise<Irmao | undefined> {
@@ -49,14 +48,12 @@ export async function getIrmao(id: string): Promise<Irmao | undefined> {
 export async function getIrmaosAtivos(): Promise<Irmao[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const q = query(
-    collection(db, "irmaos"),
-    where("loja_id", "==", lojaId),
-    where("status", "==", "ATIVO"),
-    orderBy("nome")
-  );
+  const q = query(collection(db, "irmaos"), where("loja_id", "==", lojaId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapRow(d.id, d.data()));
+  return snap.docs
+    .map((d) => mapRow(d.id, d.data()))
+    .filter((i) => i.status === "ATIVO")
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 export async function criarIrmao(input: Omit<Irmao, "id">): Promise<Irmao> {
