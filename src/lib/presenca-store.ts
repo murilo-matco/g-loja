@@ -25,6 +25,7 @@ export interface SessaoStore {
   data: string;
   tipo: TipoSessao;
   status: StatusSessao;
+  grauSessao: number;
   tema: string | null;
   descricao: string | null;
   pauta: string | null;
@@ -38,6 +39,7 @@ export interface PresencaStore {
   grau: string;
   cargo: string;
   presente: boolean;
+  isento: boolean;
   justificativa: string | null;
 }
 
@@ -55,6 +57,7 @@ export async function getSessoes(): Promise<SessaoStore[]> {
       data: data.data,
       tipo: data.tipo as TipoSessao,
       status: data.status as StatusSessao,
+      grauSessao: data.grau_sessao ?? 1,
       tema: data.tema ?? null,
       descricao: data.descricao ?? null,
       pauta: data.pauta ?? null,
@@ -71,6 +74,7 @@ export async function getSessao(id: string): Promise<SessaoStore | undefined> {
     data: data.data,
     tipo: data.tipo as TipoSessao,
     status: data.status as StatusSessao,
+    grauSessao: data.grau_sessao ?? 1,
     tema: data.tema ?? null,
     descricao: data.descricao ?? null,
     pauta: data.pauta ?? null,
@@ -84,6 +88,7 @@ export async function criarSessao(input: Omit<SessaoStore, "id" | "status">): Pr
     data: input.data,
     tipo: input.tipo,
     status: "RASCUNHO",
+    grau_sessao: input.grauSessao ?? 1,
     tema: input.tema || null,
     descricao: input.descricao || null,
     pauta: input.pauta || null,
@@ -96,6 +101,7 @@ export async function criarSessao(input: Omit<SessaoStore, "id" | "status">): Pr
     data: d.data,
     tipo: d.tipo as TipoSessao,
     status: d.status as StatusSessao,
+    grauSessao: d.grau_sessao ?? 1,
     tema: d.tema ?? null,
     descricao: d.descricao ?? null,
     pauta: d.pauta ?? null,
@@ -107,6 +113,7 @@ export async function atualizarSessao(id: string, input: Partial<Omit<SessaoStor
   if (input.data !== undefined) updates.data = input.data;
   if (input.tipo !== undefined) updates.tipo = input.tipo;
   if (input.status !== undefined) updates.status = input.status;
+  if (input.grauSessao !== undefined) updates.grau_sessao = input.grauSessao;
   if (input.tema !== undefined) updates.tema = input.tema || null;
   if (input.descricao !== undefined) updates.descricao = input.descricao || null;
   if (input.pauta !== undefined) updates.pauta = input.pauta || null;
@@ -144,23 +151,38 @@ export async function getPresencas(sessaoId: string): Promise<PresencaStore[]> {
       grau: data.grau,
       cargo: data.cargo,
       presente: data.presente,
+      isento: data.isento ?? false,
       justificativa: data.justificativa ?? null,
     };
   }).sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+const GRAU_NIVEL: Record<string, number> = {
+  APRENDIZ: 1,
+  COMPANHEIRO: 2,
+  MESTRE: 3,
+};
+
+function deveMarcarPresenca(grauIrmao: string, tipoSessao: TipoSessao, grauSessao: number): boolean {
+  if (tipoSessao === "MAGNA") return false;
+  const nivel = GRAU_NIVEL[grauIrmao] ?? 1;
+  return nivel >= grauSessao;
 }
 
 export async function inicializarPresencas(sessaoId: string): Promise<PresencaStore[]> {
   const existing = await getPresencas(sessaoId);
   if (existing.length > 0) return existing;
 
+  const sessao = await getSessao(sessaoId);
+  if (!sessao) return [];
+
   const irmaos = await getIrmaosAtivos();
   if (irmaos.length === 0) return [];
 
   const batch = writeBatch(db);
-  const refs: string[] = [];
   for (const i of irmaos) {
+    const isento = !deveMarcarPresenca(i.grau, sessao.tipo, sessao.grauSessao);
     const ref = doc(collection(db, "presencas"));
-    refs.push(ref.id);
     batch.set(ref, {
       sessao_id: sessaoId,
       irmao_id: i.id,
@@ -168,8 +190,9 @@ export async function inicializarPresencas(sessaoId: string): Promise<PresencaSt
       cim: i.cim,
       grau: i.grau,
       cargo: i.cargo,
-      presente: false,
-      justificativa: null,
+      presente: isento,
+      isento,
+      justificativa: isento ? "Isento — grau não convocado" : null,
     });
   }
   await batch.commit();
@@ -184,6 +207,7 @@ export async function salvarPresencas(sessaoId: string, presencas: PresencaStore
   for (const p of presencas) {
     batch.update(doc(db, "presencas", p.id), {
       presente: p.presente,
+      isento: p.isento,
       justificativa: p.justificativa,
     });
   }
@@ -203,10 +227,12 @@ export async function atualizarStatusSessao(sessaoId: string, status: StatusSess
   await updateDoc(doc(db, "sessoes", sessaoId), { status });
 }
 
-export async function getResumoPresenca(sessaoId: string): Promise<{ presentes: number; total: number }> {
+export async function getResumoPresenca(sessaoId: string): Promise<{ presentes: number; total: number; isentos: number }> {
   const presencas = await getPresencas(sessaoId);
+  const convocados = presencas.filter((p) => !p.isento);
   return {
-    presentes: presencas.filter((p) => p.presente).length,
-    total: presencas.length,
+    presentes: convocados.filter((p) => p.presente).length,
+    total: convocados.length,
+    isentos: presencas.filter((p) => p.isento).length,
   };
 }

@@ -95,6 +95,7 @@ function todayISO() {
 const EMPTY_FORM = {
   data: "",
   tipo: "ORDINARIA" as TipoSessao,
+  grauSessao: 1,
   tema: "",
   descricao: "",
   pauta: "",
@@ -143,6 +144,7 @@ export default function SessoesPage() {
     setForm({
       data: s.data,
       tipo: s.tipo,
+      grauSessao: s.grauSessao,
       tema: s.tema ?? "",
       descricao: s.descricao ?? "",
       pauta: s.pauta ?? "",
@@ -157,6 +159,7 @@ export default function SessoesPage() {
     const data = {
       data: form.data,
       tipo: form.tipo,
+      grauSessao: form.tipo === "MAGNA" ? 1 : form.grauSessao,
       tema: form.tema.trim() || null,
       descricao: form.descricao.trim() || null,
       pauta: form.pauta.trim() || null,
@@ -244,6 +247,11 @@ export default function SessoesPage() {
                       <Badge variant={tipoBadgeVariant(s.tipo)}>
                         {TIPO_SESSAO_LABELS[s.tipo]}
                       </Badge>
+                      {s.tipo !== "MAGNA" && (
+                        <Badge variant="outline" className="text-[10px]">
+                          Grau {s.grauSessao}
+                        </Badge>
+                      )}
                       {statusBadge(s.status)}
                       {passada && s.status === "RASCUNHO" && (
                         <Badge variant="outline" className="text-[10px] text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:bg-blue-950/30">
@@ -318,6 +326,29 @@ export default function SessoesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {form.tipo !== "MAGNA" && (
+                <div className="grid gap-2">
+                  <Label>Grau da Sessão</Label>
+                  <Select value={String(form.grauSessao)} onValueChange={(v) => setForm((p) => ({ ...p, grauSessao: Number(v) }))}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Grau 1 — Aprendiz (todos)</SelectItem>
+                      <SelectItem value="2">Grau 2 — Companheiro (Comp. + Mestres)</SelectItem>
+                      <SelectItem value="3">Grau 3 — Mestre (apenas Mestres)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    {form.grauSessao === 1 && "Todos os irmãos ativos devem comparecer."}
+                    {form.grauSessao === 2 && "Aprendizes ficam isentos. Companheiros e Mestres devem comparecer."}
+                    {form.grauSessao === 3 && "Aprendizes e Companheiros ficam isentos. Apenas Mestres devem comparecer."}
+                  </p>
+                </div>
+              )}
+              {form.tipo === "MAGNA" && (
+                <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                  Sessão Magna — todos os irmãos ficam isentos de presença.
+                </p>
+              )}
               <div className="grid gap-2">
                 <Label htmlFor="sessao-tema">Tema / Ordem do dia</Label>
                 <Input id="sessao-tema" placeholder="Ex.: Eleição para cargos" value={form.tema} onChange={(e) => setForm((p) => ({ ...p, tema: e.target.value }))} />

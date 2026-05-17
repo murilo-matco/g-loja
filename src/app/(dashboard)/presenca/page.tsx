@@ -221,6 +221,16 @@ function SessaoCard({ s, habilitada }: { s: SessaoEnriquecida; habilitada: boole
             <Badge variant={tipoBadgeVariant(s.tipo)}>
               {TIPO_SESSAO_LABELS[s.tipo]}
             </Badge>
+            {s.tipo !== "MAGNA" && (
+              <Badge variant="outline" className="text-[10px]">
+                Grau {s.grauSessao}
+              </Badge>
+            )}
+            {s.tipo === "MAGNA" && (
+              <Badge variant="outline" className="text-[10px] text-purple-600 border-purple-200 bg-purple-50 dark:text-purple-400 dark:border-purple-800 dark:bg-purple-950/30">
+                Todos isentos
+              </Badge>
+            )}
             {statusBadge(s.status)}
           </div>
         </div>

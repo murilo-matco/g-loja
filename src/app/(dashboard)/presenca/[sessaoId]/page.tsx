@@ -145,10 +145,12 @@ export default function ChamadaPage() {
     );
   }, [presencas, search]);
 
-  const totalPresentes = presencas.filter((p) => p.presente).length;
-  const totalAusentes = presencas.length - totalPresentes;
-  const totalComJustificativa = presencas.filter((p) => !p.presente && p.justificativa).length;
-  const pct = presencas.length > 0 ? Math.round((totalPresentes / presencas.length) * 100) : 0;
+  const totalPresentes = presencas.filter((p) => p.presente && !p.isento).length;
+  const totalIsentos = presencas.filter((p) => p.isento).length;
+  const convocados = presencas.filter((p) => !p.isento);
+  const totalAusentes = convocados.length - totalPresentes;
+  const totalComJustificativa = convocados.filter((p) => !p.presente && p.justificativa).length;
+  const pct = convocados.length > 0 ? Math.round((totalPresentes / convocados.length) * 100) : 0;
 
   // Persist every change to the store
   const persistAndSet = useCallback(
@@ -223,13 +225,13 @@ export default function ChamadaPage() {
 
   const marcarTodos = useCallback(() => {
     if (!editavel) return;
-    persistAndSet((prev) => prev.map((p) => ({ ...p, presente: true, justificativa: null })));
+    persistAndSet((prev) => prev.map((p) => p.isento ? p : { ...p, presente: true, justificativa: null }));
     setJustificativaAberta(null);
   }, [editavel, persistAndSet]);
 
   const desmarcarTodos = useCallback(() => {
     if (!editavel) return;
-    persistAndSet((prev) => prev.map((p) => ({ ...p, presente: false })));
+    persistAndSet((prev) => prev.map((p) => p.isento ? p : { ...p, presente: false }));
   }, [editavel, persistAndSet]);
 
   const handleConcluir = async () => {
@@ -300,6 +302,16 @@ export default function ChamadaPage() {
               <Badge variant="secondary">
                 {TIPO_SESSAO_LABELS[sessaoInfo.tipo]}
               </Badge>
+              {sessaoInfo.tipo !== "MAGNA" && (
+                <Badge variant="outline" className="text-xs">
+                  Grau {sessaoInfo.grauSessao}
+                </Badge>
+              )}
+              {sessaoInfo.tipo === "MAGNA" && (
+                <Badge variant="outline" className="text-xs text-purple-600 border-purple-200 bg-purple-50 dark:text-purple-400 dark:border-purple-800 dark:bg-purple-950/30">
+                  Todos isentos
+                </Badge>
+              )}
               <Badge variant="outline" className={cn("gap-1", statusBadgeClass(sessaoStatus))}>
                 {statusIcon(sessaoStatus)}
                 {STATUS_SESSAO_LABELS[sessaoStatus]}
@@ -327,10 +339,10 @@ export default function ChamadaPage() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-5 gap-2 sm:gap-3">
         <Card className="text-center">
           <CardContent className="py-3 px-1.5">
-            <p className="text-xl sm:text-3xl font-bold tabular-nums">{presencas.length}</p>
+            <p className="text-xl sm:text-3xl font-bold tabular-nums">{convocados.length}</p>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Convocados</p>
           </CardContent>
         </Card>
@@ -350,6 +362,12 @@ export default function ChamadaPage() {
           <CardContent className="py-3 px-1.5">
             <p className="text-xl sm:text-3xl font-bold tabular-nums text-blue-600">{totalComJustificativa}</p>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Justificados</p>
+          </CardContent>
+        </Card>
+        <Card className="text-center">
+          <CardContent className="py-3 px-1.5">
+            <p className="text-xl sm:text-3xl font-bold tabular-nums text-purple-600">{totalIsentos}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Isentos</p>
           </CardContent>
         </Card>
       </div>
@@ -421,21 +439,26 @@ export default function ChamadaPage() {
                   <div
                     className={cn(
                       "flex items-center gap-3 px-4 sm:px-3 py-3 sm:py-2.5 transition-colors",
-                      editavel && "cursor-pointer hover:bg-muted/50 active:bg-muted",
-                      p.presente && "bg-emerald-50/50 dark:bg-emerald-950/10"
+                      p.isento && "bg-purple-50/50 dark:bg-purple-950/10 opacity-70",
+                      !p.isento && editavel && "cursor-pointer hover:bg-muted/50 active:bg-muted",
+                      !p.isento && p.presente && "bg-emerald-50/50 dark:bg-emerald-950/10"
                     )}
-                    onClick={() => editavel && togglePresente(p.id, !p.presente)}
-                    role={editavel ? "button" : undefined}
-                    tabIndex={editavel ? 0 : undefined}
+                    onClick={() => !p.isento && editavel && togglePresente(p.id, !p.presente)}
+                    role={!p.isento && editavel ? "button" : undefined}
+                    tabIndex={!p.isento && editavel ? 0 : undefined}
                     onKeyDown={(e) => {
-                      if (editavel && (e.key === "Enter" || e.key === " ")) {
+                      if (!p.isento && editavel && (e.key === "Enter" || e.key === " ")) {
                         e.preventDefault();
                         togglePresente(p.id, !p.presente);
                       }
                     }}
                   >
                     <div className="shrink-0">
-                      {editavel ? (
+                      {p.isento ? (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
+                          <span className="text-[10px] font-bold">—</span>
+                        </div>
+                      ) : editavel ? (
                         <Switch
                           checked={p.presente}
                           onCheckedChange={(checked) => togglePresente(p.id, checked)}
@@ -457,7 +480,7 @@ export default function ChamadaPage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className={cn("text-sm font-medium truncate", p.presente ? "text-foreground" : "text-muted-foreground")}>
+                      <p className={cn("text-sm font-medium truncate", p.isento ? "text-muted-foreground" : p.presente ? "text-foreground" : "text-muted-foreground")}>
                         {p.nome}
                       </p>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
@@ -468,7 +491,11 @@ export default function ChamadaPage() {
                     </div>
 
                     <div className="shrink-0 flex items-center gap-1.5">
-                      {p.presente ? (
+                      {p.isento ? (
+                        <Badge variant="outline" className="text-xs text-purple-600 border-purple-200 bg-purple-50 dark:text-purple-400 dark:border-purple-800 dark:bg-purple-950/30">
+                          Isento
+                        </Badge>
+                      ) : p.presente ? (
                         <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-800 text-xs">
                           Presente
                         </Badge>
@@ -595,7 +622,7 @@ export default function ChamadaPage() {
             <div className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground tabular-nums">{totalPresentes}</span>
               {" "}de{" "}
-              <span className="font-semibold text-foreground tabular-nums">{presencas.length}</span>
+              <span className="font-semibold text-foreground tabular-nums">{convocados.length}</span>
               {" "}presentes
               {totalComJustificativa > 0 && (
                 <span className="text-blue-600 dark:text-blue-400">

@@ -147,6 +147,7 @@ interface SessaoPresencaResumo {
   presentes: number;
   ausentes: number;
   justificados: number;
+  isentos: number;
   pct: number;
 }
 
@@ -217,11 +218,13 @@ export default function RelatoriosPage() {
   const resumosSessoes: SessaoPresencaResumo[] = useMemo(() => {
     return sessoesConcluidas.map((s) => {
       const presencas = allPresencas[s.id] ?? [];
-      const presentes = presencas.filter((p) => p.presente).length;
-      const ausentes = presencas.length - presentes;
-      const justificados = presencas.filter((p) => !p.presente && p.justificativa).length;
-      const pct = presencas.length > 0 ? Math.round((presentes / presencas.length) * 100) : 0;
-      return { sessao: s, presencas, presentes, ausentes, justificados, pct };
+      const convocados = presencas.filter((p) => !p.isento);
+      const isentos = presencas.filter((p) => p.isento).length;
+      const presentes = convocados.filter((p) => p.presente).length;
+      const ausentes = convocados.length - presentes;
+      const justificados = convocados.filter((p) => !p.presente && p.justificativa).length;
+      const pct = convocados.length > 0 ? Math.round((presentes / convocados.length) * 100) : 0;
+      return { sessao: s, presencas, presentes, ausentes, justificados, isentos, pct };
     });
   }, [sessoesConcluidas, allPresencas]);
 
@@ -233,6 +236,7 @@ export default function RelatoriosPage() {
     for (const s of sessoesConcluidas) {
       const presencas = allPresencas[s.id] ?? [];
       for (const p of presencas) {
+        if (p.isento) continue;
         const existing = irmaoMap.get(p.irmaoId);
         if (existing) {
           existing.totalSessoes++;
@@ -482,6 +486,7 @@ export default function RelatoriosPage() {
                         <TableHead className="text-center">Presentes</TableHead>
                         <TableHead className="text-center">Ausentes</TableHead>
                         <TableHead className="text-center">Justificados</TableHead>
+                        <TableHead className="text-center">Isentos</TableHead>
                         <TableHead className="text-right">Frequência</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -508,6 +513,9 @@ export default function RelatoriosPage() {
                           <TableCell className="text-center tabular-nums">
                             <span className="text-blue-600 font-semibold">{r.justificados}</span>
                           </TableCell>
+                          <TableCell className="text-center tabular-nums">
+                            <span className="text-purple-600 font-semibold">{r.isentos}</span>
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <div className="h-2 w-16 rounded-full bg-muted overflow-hidden hidden sm:block print:block">
@@ -531,6 +539,9 @@ export default function RelatoriosPage() {
                         <TableCell className="text-center font-semibold tabular-nums text-red-500">{totalAusenciasGeral}</TableCell>
                         <TableCell className="text-center font-semibold tabular-nums text-blue-600">
                           {resumosSessoes.reduce((s, r) => s + r.justificados, 0)}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold tabular-nums text-purple-600">
+                          {resumosSessoes.reduce((s, r) => s + r.isentos, 0)}
                         </TableCell>
                         <TableCell className="text-right font-semibold tabular-nums">{mediaFrequencia}%</TableCell>
                       </TableRow>
