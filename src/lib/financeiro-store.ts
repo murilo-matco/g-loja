@@ -1,4 +1,17 @@
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+} from "firebase/firestore";
 import { getLojaId } from "@/lib/auth-store";
 
 export type TipoTransacao = "RECEITA" | "DESPESA";
@@ -16,47 +29,42 @@ export interface Transacao {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapRow(row: any): Transacao {
+function mapRow(id: string, data: any): Transacao {
   return {
-    id: row.id,
-    tipo: row.tipo as TipoTransacao,
-    descricao: row.descricao,
-    categoria: row.categoria,
-    valor: Number(row.valor),
-    vencimento: row.vencimento,
-    status: row.status as StatusPagamento,
-    irmao: row.irmao ?? null,
+    id,
+    tipo: data.tipo as TipoTransacao,
+    descricao: data.descricao,
+    categoria: data.categoria,
+    valor: Number(data.valor),
+    vencimento: data.vencimento,
+    status: data.status as StatusPagamento,
+    irmao: data.irmao ?? null,
   };
 }
 
 export async function getTransacoes(): Promise<Transacao[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const { data } = await supabase
-    .from("transacoes")
-    .select("*")
-    .eq("loja_id", lojaId)
-    .order("criado_em", { ascending: false });
-  return (data ?? []).map(mapRow);
+  const q = query(collection(db, "transacoes"), where("loja_id", "==", lojaId), orderBy("criado_em", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => mapRow(d.id, d.data()));
 }
 
 export async function criarTransacao(t: Omit<Transacao, "id">): Promise<Transacao> {
   const lojaId = getLojaId();
-  const { data } = await supabase
-    .from("transacoes")
-    .insert({
-      loja_id: lojaId,
-      tipo: t.tipo,
-      descricao: t.descricao,
-      categoria: t.categoria,
-      valor: t.valor,
-      vencimento: t.vencimento,
-      status: t.status,
-      irmao: t.irmao || null,
-    })
-    .select()
-    .single();
-  return mapRow(data!);
+  const ref = await addDoc(collection(db, "transacoes"), {
+    loja_id: lojaId,
+    tipo: t.tipo,
+    descricao: t.descricao,
+    categoria: t.categoria,
+    valor: t.valor,
+    vencimento: t.vencimento,
+    status: t.status,
+    irmao: t.irmao || null,
+    criado_em: serverTimestamp(),
+  });
+  const snap = await getDoc(ref);
+  return mapRow(snap.id, snap.data());
 }
 
 export async function atualizarTransacao(id: string, input: Partial<Omit<Transacao, "id">>): Promise<Transacao | null> {
@@ -69,20 +77,26 @@ export async function atualizarTransacao(id: string, input: Partial<Omit<Transac
   if (input.status !== undefined) updates.status = input.status;
   if (input.irmao !== undefined) updates.irmao = input.irmao || null;
 
-  const { data } = await supabase.from("transacoes").update(updates).eq("id", id).select().single();
-  return data ? mapRow(data) : null;
+  await updateDoc(doc(db, "transacoes", id), updates);
+  const snap = await getDoc(doc(db, "transacoes", id));
+  return snap.exists() ? mapRow(snap.id, snap.data()) : null;
 }
 
 export async function excluirTransacao(id: string): Promise<boolean> {
-  const { error } = await supabase.from("transacoes").delete().eq("id", id);
-  return !error;
+  try {
+    await deleteDoc(doc(db, "transacoes", id));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function toggleStatus(id: string): Promise<Transacao | null> {
-  const { data: current } = await supabase.from("transacoes").select("status").eq("id", id).single();
-  if (!current) return null;
+  const snap = await getDoc(doc(db, "transacoes", id));
+  if (!snap.exists()) return null;
 
-  const newStatus = current.status === "PAGO" ? "PENDENTE" : "PAGO";
-  const { data } = await supabase.from("transacoes").update({ status: newStatus }).eq("id", id).select().single();
-  return data ? mapRow(data) : null;
+  const newStatus = snap.data().status === "PAGO" ? "PENDENTE" : "PAGO";
+  await updateDoc(doc(db, "transacoes", id), { status: newStatus });
+  const updated = await getDoc(doc(db, "transacoes", id));
+  return updated.exists() ? mapRow(updated.id, updated.data()) : null;
 }

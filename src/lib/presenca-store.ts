@@ -1,4 +1,18 @@
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+  writeBatch,
+} from "firebase/firestore";
 import { getLojaId } from "@/lib/auth-store";
 import { getIrmaosAtivos } from "@/lib/irmaos-store";
 
@@ -28,69 +42,65 @@ export interface PresencaStore {
   justificativa: string | null;
 }
 
-// ─── Mappers ────────────────────────────────────────────────
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapSessao(row: any): SessaoStore {
-  return {
-    id: row.id,
-    data: row.data,
-    tipo: row.tipo as TipoSessao,
-    status: row.status as StatusSessao,
-    tema: row.tema ?? null,
-    descricao: row.descricao ?? null,
-    pauta: row.pauta ?? null,
-  };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapPresenca(row: any): PresencaStore {
-  return {
-    id: row.id,
-    irmaoId: row.irmao_id,
-    nome: row.nome,
-    cim: row.cim,
-    grau: row.grau,
-    cargo: row.cargo,
-    presente: row.presente,
-    justificativa: row.justificativa ?? null,
-  };
-}
-
 // ─── Sessões ────────────────────────────────────────────────
 
 export async function getSessoes(): Promise<SessaoStore[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const { data } = await supabase
-    .from("sessoes")
-    .select("*")
-    .eq("loja_id", lojaId)
-    .order("data", { ascending: false });
-  return (data ?? []).map(mapSessao);
+  const q = query(collection(db, "sessoes"), where("loja_id", "==", lojaId), orderBy("data", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      data: data.data,
+      tipo: data.tipo as TipoSessao,
+      status: data.status as StatusSessao,
+      tema: data.tema ?? null,
+      descricao: data.descricao ?? null,
+      pauta: data.pauta ?? null,
+    };
+  });
 }
 
 export async function getSessao(id: string): Promise<SessaoStore | undefined> {
-  const { data } = await supabase.from("sessoes").select("*").eq("id", id).limit(1);
-  return data?.[0] ? mapSessao(data[0]) : undefined;
+  const snap = await getDoc(doc(db, "sessoes", id));
+  if (!snap.exists()) return undefined;
+  const data = snap.data();
+  return {
+    id: snap.id,
+    data: data.data,
+    tipo: data.tipo as TipoSessao,
+    status: data.status as StatusSessao,
+    tema: data.tema ?? null,
+    descricao: data.descricao ?? null,
+    pauta: data.pauta ?? null,
+  };
 }
 
 export async function criarSessao(input: Omit<SessaoStore, "id" | "status">): Promise<SessaoStore> {
   const lojaId = getLojaId();
-  const { data } = await supabase
-    .from("sessoes")
-    .insert({
-      loja_id: lojaId,
-      data: input.data,
-      tipo: input.tipo,
-      status: "RASCUNHO",
-      tema: input.tema || null,
-      descricao: input.descricao || null,
-      pauta: input.pauta || null,
-    })
-    .select()
-    .single();
-  return mapSessao(data!);
+  const ref = await addDoc(collection(db, "sessoes"), {
+    loja_id: lojaId,
+    data: input.data,
+    tipo: input.tipo,
+    status: "RASCUNHO",
+    tema: input.tema || null,
+    descricao: input.descricao || null,
+    pauta: input.pauta || null,
+    criado_em: serverTimestamp(),
+  });
+  const snap = await getDoc(ref);
+  const d = snap.data()!;
+  return {
+    id: snap.id,
+    data: d.data,
+    tipo: d.tipo as TipoSessao,
+    status: d.status as StatusSessao,
+    tema: d.tema ?? null,
+    descricao: d.descricao ?? null,
+    pauta: d.pauta ?? null,
+  };
 }
 
 export async function atualizarSessao(id: string, input: Partial<Omit<SessaoStore, "id">>): Promise<SessaoStore | null> {
@@ -102,24 +112,42 @@ export async function atualizarSessao(id: string, input: Partial<Omit<SessaoStor
   if (input.descricao !== undefined) updates.descricao = input.descricao || null;
   if (input.pauta !== undefined) updates.pauta = input.pauta || null;
 
-  const { data } = await supabase.from("sessoes").update(updates).eq("id", id).select().single();
-  return data ? mapSessao(data) : null;
+  await updateDoc(doc(db, "sessoes", id), updates);
+  return (await getSessao(id)) || null;
 }
 
 export async function excluirSessao(id: string): Promise<boolean> {
-  const { error } = await supabase.from("sessoes").delete().eq("id", id);
-  return !error;
+  try {
+    const q = query(collection(db, "presencas"), where("sessao_id", "==", id));
+    const presencas = await getDocs(q);
+    const batch = writeBatch(db);
+    presencas.docs.forEach((d) => batch.delete(d.ref));
+    batch.delete(doc(db, "sessoes", id));
+    await batch.commit();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ─── Presenças ──────────────────────────────────────────────
 
 export async function getPresencas(sessaoId: string): Promise<PresencaStore[]> {
-  const { data } = await supabase
-    .from("presencas")
-    .select("*")
-    .eq("sessao_id", sessaoId)
-    .order("nome");
-  return (data ?? []).map(mapPresenca);
+  const q = query(collection(db, "presencas"), where("sessao_id", "==", sessaoId), orderBy("nome"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      irmaoId: data.irmao_id,
+      nome: data.nome,
+      cim: data.cim,
+      grau: data.grau,
+      cargo: data.cargo,
+      presente: data.presente,
+      justificativa: data.justificativa ?? null,
+    };
+  });
 }
 
 export async function inicializarPresencas(sessaoId: string): Promise<PresencaStore[]> {
@@ -129,44 +157,51 @@ export async function inicializarPresencas(sessaoId: string): Promise<PresencaSt
   const irmaos = await getIrmaosAtivos();
   if (irmaos.length === 0) return [];
 
-  const rows = irmaos.map((i) => ({
-    sessao_id: sessaoId,
-    irmao_id: i.id,
-    nome: i.nome,
-    cim: i.cim,
-    grau: i.grau,
-    cargo: i.cargo,
-    presente: false,
-    justificativa: null,
-  }));
+  const batch = writeBatch(db);
+  const refs: string[] = [];
+  for (const i of irmaos) {
+    const ref = doc(collection(db, "presencas"));
+    refs.push(ref.id);
+    batch.set(ref, {
+      sessao_id: sessaoId,
+      irmao_id: i.id,
+      nome: i.nome,
+      cim: i.cim,
+      grau: i.grau,
+      cargo: i.cargo,
+      presente: false,
+      justificativa: null,
+    });
+  }
+  await batch.commit();
 
-  const { data } = await supabase.from("presencas").insert(rows).select();
+  await updateDoc(doc(db, "sessoes", sessaoId), { status: "ABERTA" });
 
-  await supabase.from("sessoes").update({ status: "ABERTA" }).eq("id", sessaoId).eq("status", "RASCUNHO");
-
-  return (data ?? []).map(mapPresenca);
+  return getPresencas(sessaoId);
 }
 
 export async function salvarPresencas(sessaoId: string, presencas: PresencaStore[]): Promise<void> {
+  const batch = writeBatch(db);
   for (const p of presencas) {
-    await supabase
-      .from("presencas")
-      .update({ presente: p.presente, justificativa: p.justificativa })
-      .eq("id", p.id);
+    batch.update(doc(db, "presencas", p.id), {
+      presente: p.presente,
+      justificativa: p.justificativa,
+    });
   }
+  await batch.commit();
 }
 
 export async function concluirSessao(sessaoId: string, presencas: PresencaStore[]): Promise<void> {
   await salvarPresencas(sessaoId, presencas);
-  await supabase.from("sessoes").update({ status: "CONCLUIDA" }).eq("id", sessaoId);
+  await updateDoc(doc(db, "sessoes", sessaoId), { status: "CONCLUIDA" });
 }
 
 export async function reabrirSessao(sessaoId: string): Promise<void> {
-  await supabase.from("sessoes").update({ status: "ABERTA" }).eq("id", sessaoId);
+  await updateDoc(doc(db, "sessoes", sessaoId), { status: "ABERTA" });
 }
 
 export async function atualizarStatusSessao(sessaoId: string, status: StatusSessao): Promise<void> {
-  await supabase.from("sessoes").update({ status }).eq("id", sessaoId);
+  await updateDoc(doc(db, "sessoes", sessaoId), { status });
 }
 
 export async function getResumoPresenca(sessaoId: string): Promise<{ presentes: number; total: number }> {

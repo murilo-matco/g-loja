@@ -1,4 +1,18 @@
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  serverTimestamp,
+} from "firebase/firestore";
 
 const SESSION_KEY = "gloja-auth";
 
@@ -121,7 +135,17 @@ export function isAdmin(): boolean {
   return getSession()?.cargo === "VENERAVEL";
 }
 
-// ─── Login (async — queries Supabase) ───────────────────────
+// ─── Helpers ─────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function tsToString(ts: any): string {
+  if (!ts) return new Date().toISOString();
+  if (typeof ts === "string") return ts;
+  if (ts.toDate) return ts.toDate().toISOString();
+  return new Date().toISOString();
+}
+
+// ─── Login (async — queries Firestore) ───────────────────────
 
 export async function login(
   identificador: string,
@@ -146,8 +170,10 @@ export async function login(
 
 async function loginLoja(cnpj: string, senha: string): Promise<{ ok: true; session: AuthSession } | { ok: false; erro: string }> {
   const clean = cnpj.replace(/\D/g, "");
-  const { data: lojas } = await supabase.from("lojas").select("*");
-  const loja = lojas?.find((l: Loja) => l.cnpj.replace(/\D/g, "") === clean);
+  const snap = await getDocs(collection(db, "lojas"));
+  const loja = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Loja))
+    .find((l) => l.cnpj.replace(/\D/g, "") === clean);
 
   if (!loja) return { ok: false, erro: "CNPJ não cadastrado no sistema." };
   if (loja.senha !== senha) return { ok: false, erro: "Senha incorreta." };
@@ -170,25 +196,35 @@ async function loginLoja(cnpj: string, senha: string): Promise<{ ok: true; sessi
 
 async function loginUsuario(cpf: string, senha: string): Promise<{ ok: true; session: AuthSession } | { ok: false; erro: string }> {
   const clean = cpf.replace(/\D/g, "");
-  const { data: users } = await supabase.from("usuarios").select("*");
-  const user = users?.find((u: { cpf: string }) => u.cpf.replace(/\D/g, "") === clean);
+  const snap = await getDocs(collection(db, "usuarios"));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allUsers = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
+  const user = allUsers.find((u: { cpf?: string }) => u.cpf?.replace(/\D/g, "") === clean);
 
   if (!user) return { ok: false, erro: "CPF não cadastrado no sistema." };
   if (!user.ativo) return { ok: false, erro: "Acesso desativado. Contate o Venerável." };
   if (user.senha !== senha) return { ok: false, erro: "Senha incorreta." };
 
-  const { data: lojas } = await supabase.from("lojas").select("*").eq("id", user.loja_id).limit(1);
-  const loja = lojas?.[0];
+  let nomeLoja = "G-Loja";
+  let oriente = "";
+  if (user.loja_id) {
+    const lojaSnap = await getDoc(doc(db, "lojas", user.loja_id as string));
+    if (lojaSnap.exists()) {
+      const lojaData = lojaSnap.data();
+      nomeLoja = lojaData.nome ?? nomeLoja;
+      oriente = lojaData.oriente ?? "";
+    }
+  }
 
   const session: AuthSession = {
     tipo: "usuario",
     id: user.id,
-    lojaId: user.loja_id,
-    cpf: user.cpf,
-    nome: user.nome,
+    lojaId: user.loja_id as string,
+    cpf: user.cpf as string,
+    nome: user.nome as string,
     cargo: user.cargo as CargoSistema,
-    nomeLoja: loja?.nome ?? "G-Loja",
-    oriente: loja?.oriente ?? "",
+    nomeLoja,
+    oriente,
     permissoes: PERMISSOES[user.cargo as CargoSistema] ?? ["/"],
     logadoEm: new Date().toISOString(),
   };
@@ -200,27 +236,27 @@ async function loginUsuario(cpf: string, senha: string): Promise<{ ok: true; ses
 
 export async function alterarSenhaLoja(cnpj: string, senhaAtual: string, novaSenha: string): Promise<{ ok: boolean; erro?: string }> {
   const clean = cnpj.replace(/\D/g, "");
-  const { data: lojas } = await supabase.from("lojas").select("*");
-  const loja = lojas?.find((l: Loja) => l.cnpj.replace(/\D/g, "") === clean);
+  const snap = await getDocs(collection(db, "lojas"));
+  const lojaDoc = snap.docs.find((d) => (d.data().cnpj ?? "").replace(/\D/g, "") === clean);
 
-  if (!loja) return { ok: false, erro: "Loja não encontrada." };
-  if (loja.senha !== senhaAtual) return { ok: false, erro: "Senha atual incorreta." };
+  if (!lojaDoc) return { ok: false, erro: "Loja não encontrada." };
+  if (lojaDoc.data().senha !== senhaAtual) return { ok: false, erro: "Senha atual incorreta." };
   if (novaSenha.length < 6) return { ok: false, erro: "Nova senha deve ter ao menos 6 caracteres." };
 
-  await supabase.from("lojas").update({ senha: novaSenha, primeiro_acesso: false }).eq("id", loja.id);
+  await updateDoc(doc(db, "lojas", lojaDoc.id), { senha: novaSenha, primeiro_acesso: false });
   return { ok: true };
 }
 
 export async function alterarSenhaUsuario(cpf: string, senhaAtual: string, novaSenha: string): Promise<{ ok: boolean; erro?: string }> {
   const clean = cpf.replace(/\D/g, "");
-  const { data: users } = await supabase.from("usuarios").select("*");
-  const user = users?.find((u: { cpf: string }) => u.cpf.replace(/\D/g, "") === clean);
+  const snap = await getDocs(collection(db, "usuarios"));
+  const userDoc = snap.docs.find((d) => (d.data().cpf ?? "").replace(/\D/g, "") === clean);
 
-  if (!user) return { ok: false, erro: "Usuário não encontrado." };
-  if (user.senha !== senhaAtual) return { ok: false, erro: "Senha atual incorreta." };
+  if (!userDoc) return { ok: false, erro: "Usuário não encontrado." };
+  if (userDoc.data().senha !== senhaAtual) return { ok: false, erro: "Senha atual incorreta." };
   if (novaSenha.length < 6) return { ok: false, erro: "Nova senha deve ter ao menos 6 caracteres." };
 
-  await supabase.from("usuarios").update({ senha: novaSenha, primeiro_acesso: false }).eq("id", user.id);
+  await updateDoc(doc(db, "usuarios", userDoc.id), { senha: novaSenha, primeiro_acesso: false });
   return { ok: true };
 }
 
@@ -228,14 +264,14 @@ export async function isPrimeiroAcesso(identificador: string): Promise<boolean> 
   const digits = identificador.replace(/\D/g, "");
 
   if (digits.length >= 14) {
-    const { data } = await supabase.from("lojas").select("primeiro_acesso, cnpj");
-    const loja = data?.find((l: { cnpj: string }) => l.cnpj.replace(/\D/g, "") === digits);
-    return (loja as { primeiro_acesso: boolean } | undefined)?.primeiro_acesso ?? false;
+    const snap = await getDocs(collection(db, "lojas"));
+    const lojaDoc = snap.docs.find((d) => (d.data().cnpj ?? "").replace(/\D/g, "") === digits);
+    return lojaDoc?.data().primeiro_acesso ?? false;
   }
 
-  const { data } = await supabase.from("usuarios").select("primeiro_acesso, cpf");
-  const user = data?.find((u: { cpf: string }) => u.cpf.replace(/\D/g, "") === digits);
-  return (user as { primeiro_acesso: boolean } | undefined)?.primeiro_acesso ?? false;
+  const snap = await getDocs(collection(db, "usuarios"));
+  const userDoc = snap.docs.find((d) => (d.data().cpf ?? "").replace(/\D/g, "") === digits);
+  return userDoc?.data().primeiro_acesso ?? false;
 }
 
 // ─── CRUD Usuários ──────────────────────────────────────────
@@ -245,13 +281,15 @@ const SENHA_PADRAO = "gloja123";
 export async function getUsuarios(): Promise<Usuario[]> {
   const lojaId = getLojaId();
   if (!lojaId) return [];
-  const { data } = await supabase.from("usuarios").select("*").eq("loja_id", lojaId).order("criado_em", { ascending: false });
-  return (data ?? []).map(mapUsuario);
+  const q = query(collection(db, "usuarios"), where("loja_id", "==", lojaId), orderBy("criado_em", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => mapUsuario({ id: d.id, ...d.data() }));
 }
 
 export async function getUsuario(id: string): Promise<Usuario | undefined> {
-  const { data } = await supabase.from("usuarios").select("*").eq("id", id).limit(1);
-  return data?.[0] ? mapUsuario(data[0]) : undefined;
+  const snap = await getDoc(doc(db, "usuarios", id));
+  if (!snap.exists()) return undefined;
+  return mapUsuario({ id: snap.id, ...snap.data() });
 }
 
 export async function criarUsuario(input: { cpf: string; nome: string; cargo: CargoSistema; senha?: string }): Promise<{ ok: true; usuario: Usuario } | { ok: false; erro: string }> {
@@ -264,12 +302,13 @@ export async function criarUsuario(input: { cpf: string; nome: string; cargo: Ca
   if (clean.length !== 11) return { ok: false, erro: "CPF deve ter 11 dígitos." };
   if (senhaFinal.length < 4) return { ok: false, erro: "Senha deve ter ao menos 4 caracteres." };
 
-  const { data: existing } = await supabase.from("usuarios").select("id, cpf").eq("loja_id", lojaId);
-  if (existing?.some((u: { cpf: string }) => u.cpf.replace(/\D/g, "") === clean)) {
+  const q = query(collection(db, "usuarios"), where("loja_id", "==", lojaId));
+  const existing = await getDocs(q);
+  if (existing.docs.some((d) => (d.data().cpf ?? "").replace(/\D/g, "") === clean)) {
     return { ok: false, erro: "Já existe um usuário com este CPF." };
   }
 
-  const { data, error } = await supabase.from("usuarios").insert({
+  const ref = await addDoc(collection(db, "usuarios"), {
     loja_id: lojaId,
     cpf: formatCPF(clean),
     nome: input.nome,
@@ -277,10 +316,11 @@ export async function criarUsuario(input: { cpf: string; nome: string; cargo: Ca
     senha: senhaFinal,
     primeiro_acesso: true,
     ativo: true,
-  }).select().single();
+    criado_em: serverTimestamp(),
+  });
 
-  if (error || !data) return { ok: false, erro: error?.message ?? "Erro ao criar usuário." };
-  return { ok: true, usuario: mapUsuario(data) };
+  const snap = await getDoc(ref);
+  return { ok: true, usuario: mapUsuario({ id: snap.id, ...snap.data() }) };
 }
 
 export async function atualizarUsuario(id: string, input: { nome?: string; cargo?: CargoSistema; ativo?: boolean }): Promise<Usuario | null> {
@@ -289,21 +329,30 @@ export async function atualizarUsuario(id: string, input: { nome?: string; cargo
   if (input.cargo !== undefined) updates.cargo = input.cargo;
   if (input.ativo !== undefined) updates.ativo = input.ativo;
 
-  const { data } = await supabase.from("usuarios").update(updates).eq("id", id).select().single();
-  return data ? mapUsuario(data) : null;
+  await updateDoc(doc(db, "usuarios", id), updates);
+  const snap = await getDoc(doc(db, "usuarios", id));
+  return snap.exists() ? mapUsuario({ id: snap.id, ...snap.data() }) : null;
 }
 
 export async function resetarSenhaUsuario(id: string, novaSenha?: string): Promise<boolean> {
-  const { error } = await supabase.from("usuarios").update({
-    senha: novaSenha?.trim() || SENHA_PADRAO,
-    primeiro_acesso: true,
-  }).eq("id", id);
-  return !error;
+  try {
+    await updateDoc(doc(db, "usuarios", id), {
+      senha: novaSenha?.trim() || SENHA_PADRAO,
+      primeiro_acesso: true,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function excluirUsuario(id: string): Promise<boolean> {
-  const { error } = await supabase.from("usuarios").delete().eq("id", id);
-  return !error;
+  try {
+    await deleteDoc(doc(db, "usuarios", id));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ─── Mappers ────────────────────────────────────────────────
@@ -319,7 +368,7 @@ function mapUsuario(row: any): Usuario {
     senha: row.senha,
     primeiroAcesso: row.primeiro_acesso,
     ativo: row.ativo,
-    criadoEm: row.criado_em,
+    criadoEm: tsToString(row.criado_em),
   };
 }
 
@@ -357,23 +406,36 @@ export function getSenhaPadrao(): string {
 export async function getLojaAtual(): Promise<Loja | null> {
   const lojaId = getLojaId();
   if (!lojaId) return null;
-  const { data } = await supabase.from("lojas").select("*").eq("id", lojaId).limit(1);
-  return data?.[0] ?? null;
+  const snap = await getDoc(doc(db, "lojas", lojaId));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  return {
+    id: snap.id,
+    cnpj: data.cnpj,
+    senha: data.senha,
+    nome: data.nome,
+    oriente: data.oriente ?? "",
+    nome_admin: data.nome_admin ?? "",
+    primeiro_acesso: data.primeiro_acesso ?? false,
+    criado_em: tsToString(data.criado_em),
+  };
 }
 
 export async function atualizarLoja(id: string, input: { nome?: string; cnpj?: string; oriente?: string; nome_admin?: string }): Promise<{ ok: boolean; erro?: string }> {
   if (input.cnpj) {
     const clean = input.cnpj.replace(/\D/g, "");
     if (clean.length !== 14) return { ok: false, erro: "CNPJ deve ter 14 dígitos." };
-    const { data: existing } = await supabase.from("lojas").select("id").eq("cnpj", formatCNPJ(clean));
-    if (existing?.some((l: { id: string }) => l.id !== id)) {
-      return { ok: false, erro: "Já existe uma loja com este CNPJ." };
-    }
+    const snap = await getDocs(collection(db, "lojas"));
+    const conflict = snap.docs.find((d) => d.data().cnpj === formatCNPJ(clean) && d.id !== id);
+    if (conflict) return { ok: false, erro: "Já existe uma loja com este CNPJ." };
     input.cnpj = formatCNPJ(clean);
   }
 
-  const { error } = await supabase.from("lojas").update(input).eq("id", id);
-  if (error) return { ok: false, erro: error.message };
+  try {
+    await updateDoc(doc(db, "lojas", id), { ...input });
+  } catch (e) {
+    return { ok: false, erro: (e as Error).message };
+  }
 
   const session = getSession();
   if (session && session.lojaId === id) {
@@ -398,20 +460,19 @@ export async function cadastrarLoja(input: {
   if (input.senha.length < 6) return { ok: false, erro: "Senha deve ter ao menos 6 caracteres." };
   if (!input.nome.trim()) return { ok: false, erro: "Nome da loja é obrigatório." };
 
-  const { data: existing } = await supabase.from("lojas").select("id").eq("cnpj", formatCNPJ(clean));
-  if (existing && existing.length > 0) {
-    return { ok: false, erro: "Já existe uma loja com este CNPJ." };
-  }
+  const snap = await getDocs(collection(db, "lojas"));
+  const conflict = snap.docs.find((d) => d.data().cnpj === formatCNPJ(clean));
+  if (conflict) return { ok: false, erro: "Já existe uma loja com este CNPJ." };
 
-  const { data, error } = await supabase.from("lojas").insert({
+  const ref = await addDoc(collection(db, "lojas"), {
     cnpj: formatCNPJ(clean),
     senha: input.senha,
     nome: input.nome.trim(),
     oriente: input.oriente.trim(),
     nome_admin: input.nomeAdmin.trim() || "Ven.·. Mestre",
     primeiro_acesso: false,
-  }).select().single();
+    criado_em: serverTimestamp(),
+  });
 
-  if (error || !data) return { ok: false, erro: error?.message ?? "Erro ao cadastrar." };
-  return { ok: true, lojaId: data.id };
+  return { ok: true, lojaId: ref.id };
 }
