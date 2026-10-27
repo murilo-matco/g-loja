@@ -83,11 +83,12 @@ const CARGOS_COM_ACESSO: CargoSistema[] = [
 
 const SIDEBAR_LABELS: Record<string, string> = {
   "/": "Dashboard",
-  "/irmaos": "Irmãos",
-  "/sessoes": "Sessões",
-  "/presenca": "Presença",
-  "/financeiro": "Financeiro",
-  "/relatorios": "Relatórios",
+  "/app/irmaos": "Irmãos",
+  "/app/sessoes": "Sessões",
+  "/app/presenca": "Presença",
+  "/app/trabalhos": "Trabalhos",
+  "/app/financeiro": "Financeiro",
+  "/app/relatorios": "Relatórios",
 };
 
 function statusBadgeVariant(status: string): "default" | "secondary" | "outline" | "destructive" {
@@ -253,7 +254,7 @@ export function IrmaosClient() {
             <Users className="h-5 w-5 text-muted-foreground" />
             Lista de Irmãos
           </CardTitle>
-          <Link href="/irmaos/novo" className={cn(buttonVariants(), "gap-1.5")}>
+          <Link href="/app/irmaos/novo" className={cn(buttonVariants(), "gap-1.5")}>
             <Plus className="h-4 w-4" />
             Novo Irmão
           </Link>
@@ -380,7 +381,7 @@ export function IrmaosClient() {
                               }
                             />
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => router.push(`/irmaos/${row.id}/editar`)}>
+                              <DropdownMenuItem onClick={() => router.push(`/app/irmaos/${row.id}/editar`)}>
                                 <Pencil className="h-4 w-4" />
                                 Editar
                               </DropdownMenuItem>

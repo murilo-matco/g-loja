@@ -70,7 +70,7 @@ export default function LoginPage() {
   const [cadSucesso, setCadSucesso] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn()) router.replace("/");
+    if (isLoggedIn()) router.replace("/app");
   }, [router]);
 
   function handleIdChange(value: string) {
@@ -101,7 +101,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/");
+    router.replace("/app");
   }
 
   async function handleTrocarSenha() {
@@ -126,7 +126,7 @@ export default function LoginPage() {
     }
 
     setShowTrocaSenha(false);
-    router.replace("/");
+    router.replace("/app");
   }
 
   async function handleCadastro(e: React.FormEvent) {

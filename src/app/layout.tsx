@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "G-Loja | Gestão de Lojas Maçônicas",
+  title: "G-Loja | Loja Maçônica",
   description:
-    "Sistema SaaS de gestão para Lojas Maçônicas — Membros, Sessões, Presença e Tesouraria.",
+    "Site institucional da Loja e área reservada aos irmãos — ações, trabalhos, presença e gestão.",
 };
 
 export default function RootLayout({

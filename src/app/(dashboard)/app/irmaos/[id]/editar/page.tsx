@@ -113,7 +113,7 @@ export default function EditarIrmaoPage() {
       dataNasc: form.dataNasc || null,
       dataIniciacao: form.dataIniciacao || null,
     });
-    router.push("/irmaos");
+    router.push("/app/irmaos");
   };
 
   if (loadingIrmao) {
@@ -131,7 +131,7 @@ export default function EditarIrmaoPage() {
           <CardContent className="py-12 text-center space-y-4">
             <XCircle className="h-12 w-12 mx-auto text-muted-foreground" />
             <p className="text-muted-foreground">Irmão não encontrado.</p>
-            <Link href="/irmaos">
+            <Link href="/app/irmaos">
               <Button variant="outline">Voltar para lista</Button>
             </Link>
           </CardContent>
@@ -296,7 +296,7 @@ export default function EditarIrmaoPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push("/irmaos")}
+              onClick={() => router.push("/app/irmaos")}
             >
               Cancelar
             </Button>

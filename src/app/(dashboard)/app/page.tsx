@@ -205,7 +205,7 @@ export default function DashboardPage() {
               <div className="py-8 text-center space-y-3">
                 <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">Nenhuma sessão futura cadastrada.</p>
-                <Link href="/sessoes" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+                <Link href="/app/sessoes" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
                   <CalendarDays className="h-4 w-4" />
                   Ir para Sessões
                 </Link>
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
                 {proximasSessoes.length >= 5 && (
-                  <Link href="/sessoes" className="block text-center text-xs text-primary hover:underline pt-2">
+                  <Link href="/app/sessoes" className="block text-center text-xs text-primary hover:underline pt-2">
                     Ver todas as sessões
                   </Link>
                 )}
@@ -250,28 +250,28 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <Link
-              href="/irmaos"
+              href="/app/irmaos"
               className={cn(buttonVariants({ variant: "outline" }), "w-full justify-start gap-2")}
             >
               <Users className="h-4 w-4" />
               Gerenciar Irmãos
             </Link>
             <Link
-              href="/presenca"
+              href="/app/presenca"
               className={cn(buttonVariants({ variant: "outline" }), "w-full justify-start gap-2")}
             >
               <ClipboardCheck className="h-4 w-4" />
               Chancelaria — Presença
             </Link>
             <Link
-              href="/financeiro"
+              href="/app/financeiro"
               className={cn(buttonVariants({ variant: "outline" }), "w-full justify-start gap-2")}
             >
               <Wallet className="h-4 w-4" />
               Financeiro
             </Link>
             <Link
-              href="/sessoes"
+              href="/app/sessoes"
               className={cn(buttonVariants({ variant: "outline" }), "w-full justify-start gap-2")}
             >
               <CalendarDays className="h-4 w-4" />

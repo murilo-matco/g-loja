@@ -10,10 +10,12 @@ import {
   ClipboardCheck,
   Wallet,
   FileBarChart,
+  BookOpen,
   Settings,
   ChevronLeft,
   Menu,
   X,
+  Globe,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,16 +29,18 @@ import { temPermissao } from "@/lib/auth-store";
 import { useSidebar } from "@/components/sidebar-context";
 
 const allNavigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Irmãos", href: "/irmaos", icon: Users },
-  { name: "Sessões", href: "/sessoes", icon: CalendarDays },
-  { name: "Presença", href: "/presenca", icon: ClipboardCheck },
-  { name: "Financeiro", href: "/financeiro", icon: Wallet },
-  { name: "Relatórios", href: "/relatorios", icon: FileBarChart },
+  { name: "Dashboard", href: "/app", icon: LayoutDashboard },
+  { name: "Irmãos", href: "/app/irmaos", icon: Users },
+  { name: "Sessões", href: "/app/sessoes", icon: CalendarDays },
+  { name: "Presença", href: "/app/presenca", icon: ClipboardCheck },
+  { name: "Trabalhos", href: "/app/trabalhos", icon: BookOpen },
+  { name: "Financeiro", href: "/app/financeiro", icon: Wallet },
+  { name: "Relatórios", href: "/app/relatorios", icon: FileBarChart },
 ];
 
 const bottomNav = [
-  { name: "Configurações", href: "/configuracoes", icon: Settings },
+  { name: "Ver site público", href: "/", icon: Globe },
+  { name: "Configurações", href: "/app/configuracoes", icon: Settings },
 ];
 
 function SidebarContent({
@@ -84,7 +88,7 @@ function SidebarContent({
 
       <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
         {navigation.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const isActive = item.href === "/app" ? pathname === "/app" || pathname === "/app/" : pathname.startsWith(item.href);
 
           const linkClass = cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
@@ -123,7 +127,10 @@ function SidebarContent({
 
       <div className="py-3 px-2 space-y-1">
         {bottomNav.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive =
+            item.href === "/"
+              ? false
+              : pathname === item.href || pathname.startsWith(item.href + "/");
           const linkClass = cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
             isActive

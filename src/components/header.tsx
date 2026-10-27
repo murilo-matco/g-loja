@@ -106,7 +106,7 @@ async function buildNotificacoes(): Promise<Notificacao[]> {
         titulo: dias === 0 ? "Sessão hoje!" : `Sessão em ${formatDateShort(s.data)}`,
         descricao: s.tema || s.tipo.charAt(0) + s.tipo.slice(1).toLowerCase(),
         tempo,
-        href: "/sessoes",
+        href: "/app/sessoes",
         lida: dias > 7,
         variant: dias <= 1 ? "warning" : "info",
       });
@@ -120,7 +120,7 @@ async function buildNotificacoes(): Promise<Notificacao[]> {
         titulo: "Presença pendente",
         descricao: `${pendentes.length} sessão(ões) sem chamada concluída`,
         tempo: "Ação necessária",
-        href: "/presenca",
+        href: "/app/presenca",
         lida: false,
         variant: "warning",
       });
@@ -139,7 +139,7 @@ async function buildNotificacoes(): Promise<Notificacao[]> {
         titulo: "Lançamentos vencidos",
         descricao: `${vencidos.length} transação(ões) pendente(s)`,
         tempo: "Verificar",
-        href: "/financeiro",
+        href: "/app/financeiro",
         lida: false,
         variant: "warning",
       });

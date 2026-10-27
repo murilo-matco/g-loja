@@ -50,7 +50,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             Você não tem permissão para acessar esta página.
             Contate o Venerável Mestre para solicitar acesso.
           </p>
-          <Button variant="outline" onClick={() => router.replace("/")}>
+          <Button variant="outline" onClick={() => router.replace("/app")}>
             Voltar ao Dashboard
           </Button>
         </div>

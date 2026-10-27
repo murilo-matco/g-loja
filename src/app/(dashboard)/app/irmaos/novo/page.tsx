@@ -77,7 +77,7 @@ export default function NovoIrmaoPage() {
       dataNasc: form.dataNasc || null,
       dataIniciacao: form.dataIniciacao || null,
     });
-    router.push("/irmaos");
+    router.push("/app/irmaos");
   };
 
   return (
@@ -234,7 +234,7 @@ export default function NovoIrmaoPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push("/irmaos")}
+              onClick={() => router.push("/app/irmaos")}
             >
               Cancelar
             </Button>

@@ -156,7 +156,7 @@ export default function PresencaPage() {
             <p className="text-xs text-muted-foreground">
               Cadastre sessões na aba <strong>Sessões</strong> para que elas apareçam aqui.
             </p>
-            <Link href="/sessoes" className={cn(buttonVariants({ variant: "outline" }), "mt-2")}>
+            <Link href="/app/sessoes" className={cn(buttonVariants({ variant: "outline" }), "mt-2")}>
               Ir para Sessões
             </Link>
           </CardContent>

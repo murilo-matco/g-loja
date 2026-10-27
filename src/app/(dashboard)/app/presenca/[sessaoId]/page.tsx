@@ -266,7 +266,7 @@ export default function ChamadaPage() {
           <CardContent className="py-12 text-center space-y-4">
             <XCircle className="h-12 w-12 mx-auto text-muted-foreground" />
             <p className="text-muted-foreground">Sessão não encontrada.</p>
-            <Link href="/presenca">
+            <Link href="/app/presenca">
               <Button variant="outline">Voltar</Button>
             </Link>
           </CardContent>
@@ -282,7 +282,7 @@ export default function ChamadaPage() {
       {/* Back + Header */}
       <div>
         <Link
-          href="/presenca"
+          href="/app/presenca"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
         >
           <ArrowLeft className="h-4 w-4" />

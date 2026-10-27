@@ -37,13 +37,13 @@ export const CARGO_SISTEMA_LABELS: Record<CargoSistema, string> = {
 };
 
 export const PERMISSOES: Record<CargoSistema, string[]> = {
-  VENERAVEL: ["/", "/irmaos", "/sessoes", "/presenca", "/financeiro", "/relatorios", "/configuracoes"],
-  CHANCELER: ["/", "/presenca"],
-  TESOUREIRO: ["/", "/financeiro"],
-  SECRETARIO: ["/", "/irmaos", "/sessoes", "/relatorios"],
-  ORADOR: ["/", "/sessoes", "/relatorios"],
-  PRIMEIRO_VIGILANTE: ["/", "/irmaos", "/sessoes", "/presenca", "/relatorios"],
-  SEGUNDO_VIGILANTE: ["/", "/sessoes", "/presenca"],
+  VENERAVEL: ["/app", "/app/irmaos", "/app/sessoes", "/app/presenca", "/app/financeiro", "/app/relatorios", "/app/trabalhos", "/app/configuracoes"],
+  CHANCELER: ["/app", "/app/presenca", "/app/trabalhos"],
+  TESOUREIRO: ["/app", "/app/financeiro"],
+  SECRETARIO: ["/app", "/app/irmaos", "/app/sessoes", "/app/relatorios", "/app/trabalhos"],
+  ORADOR: ["/app", "/app/sessoes", "/app/relatorios", "/app/trabalhos"],
+  PRIMEIRO_VIGILANTE: ["/app", "/app/irmaos", "/app/sessoes", "/app/presenca", "/app/relatorios", "/app/trabalhos"],
+  SEGUNDO_VIGILANTE: ["/app", "/app/sessoes", "/app/presenca", "/app/trabalhos"],
 };
 
 // ─── Types ──────────────────────────────────────────────────
@@ -79,6 +79,8 @@ export interface AuthSession {
   cpf?: string;
   nome: string;
   cargo: CargoSistema;
+  /** 1=Aprendiz, 2=Companheiro, 3=Mestre — usado em Trabalhos */
+  grauNivel?: number;
   nomeLoja: string;
   oriente: string;
   permissoes: string[];
@@ -125,7 +127,7 @@ export function temPermissao(rota: string): boolean {
   if (session.cargo === "VENERAVEL") return true;
   if (!Array.isArray(session.permissoes)) return false;
   return session.permissoes.some((p) => {
-    if (p === "/") return rota === "/";
+    if (p === "/app") return rota === "/app" || rota === "/app/";
     return rota === p || rota.startsWith(p + "/");
   });
 }
@@ -184,6 +186,7 @@ async function loginLoja(cnpj: string, senha: string): Promise<{ ok: true; sessi
     cnpj: loja.cnpj,
     nome: loja.nome_admin,
     cargo: "VENERAVEL",
+    grauNivel: 3,
     nomeLoja: loja.nome,
     oriente: loja.oriente,
     permissoes: PERMISSOES.VENERAVEL,
@@ -215,6 +218,20 @@ async function loginUsuario(cpf: string, senha: string): Promise<{ ok: true; ses
     }
   }
 
+  let grauNivel = 1;
+  try {
+    const irmaosSnap = await getDocs(
+      query(collection(db, "irmaos"), where("loja_id", "==", user.loja_id as string))
+    );
+    const irmao = irmaosSnap.docs
+      .map((d) => d.data())
+      .find((i) => (i.cpf as string | undefined)?.replace(/\D/g, "") === clean);
+    const grau = (irmao?.grau as string) ?? "APRENDIZ";
+    grauNivel = grau === "MESTRE" ? 3 : grau === "COMPANHEIRO" ? 2 : 1;
+  } catch {
+    grauNivel = 1;
+  }
+
   const session: AuthSession = {
     tipo: "usuario",
     id: user.id,
@@ -222,9 +239,10 @@ async function loginUsuario(cpf: string, senha: string): Promise<{ ok: true; ses
     cpf: user.cpf as string,
     nome: user.nome as string,
     cargo: user.cargo as CargoSistema,
+    grauNivel,
     nomeLoja,
     oriente,
-    permissoes: PERMISSOES[user.cargo as CargoSistema] ?? ["/"],
+    permissoes: PERMISSOES[user.cargo as CargoSistema] ?? ["/app"],
     logadoEm: new Date().toISOString(),
   };
   saveSession(session);
