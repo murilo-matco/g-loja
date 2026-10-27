@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen,
+  ChevronLeft,
   ChevronRight,
   Download,
   ExternalLink,
@@ -17,6 +18,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { cloudinaryPdfPageUrl, isCloudinaryPdf } from "@/lib/pdf-cloudinary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,6 +91,10 @@ export default function TrabalhosInternosPage() {
   const [error, setError] = useState<string | null>(null);
   const [aberto, setAberto] = useState<Trabalho | null>(null);
   const [lightbox, setLightbox] = useState<MidiaTrabalho | null>(null);
+  const [pdfView, setPdfView] = useState<MidiaTrabalho | null>(null);
+  const [pdfPage, setPdfPage] = useState(1);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfErro, setPdfErro] = useState<string | null>(null);
   /** null = hub com as 3 pastas de grau; 1|2|3 = lista daquela pasta */
   const [grauAberto, setGrauAberto] = useState<1 | 2 | 3 | null>(null);
 
@@ -115,10 +121,10 @@ export default function TrabalhosInternosPage() {
   }, [reload]);
 
   const secoes = useMemo(() => {
-    const defs: { grau: 1 | 2 | 3; titulo: string; sub: string; cor: string }[] = [
-      { grau: 1, titulo: "Aprendizes", sub: "1º grau", cor: "from-sky-600/20 to-sky-900/10 border-sky-500/30" },
-      { grau: 2, titulo: "Companheiros", sub: "2º grau", cor: "from-amber-600/20 to-amber-900/10 border-amber-500/30" },
-      { grau: 3, titulo: "Mestres", sub: "3º grau", cor: "from-emerald-600/20 to-emerald-900/10 border-emerald-500/30" },
+    const defs: { grau: 1 | 2 | 3; titulo: string; sub: string }[] = [
+      { grau: 1, titulo: "Aprendizes", sub: "1º grau" },
+      { grau: 2, titulo: "Companheiros", sub: "2º grau" },
+      { grau: 3, titulo: "Mestres", sub: "3º grau" },
     ];
     return defs
       .filter((s) => nivel >= s.grau)
@@ -127,6 +133,11 @@ export default function TrabalhosInternosPage() {
         itens: lista.filter((t) => t.grauMinimo === s.grau),
       }));
   }, [lista, nivel]);
+
+  const pdfPageSrc = useMemo(() => {
+    if (!pdfView) return null;
+    return cloudinaryPdfPageUrl(pdfView.url, pdfPage);
+  }, [pdfView, pdfPage]);
 
   const listaGrau = useMemo(() => {
     if (!grauAberto) return [];
@@ -207,8 +218,15 @@ export default function TrabalhosInternosPage() {
   }
 
   function abrirMidia(m: MidiaTrabalho) {
-    if (m.tipo === "image") {
+    if (m.tipo === "image" && !isCloudinaryPdf(m.url, m.tipo)) {
       setLightbox(m);
+      return;
+    }
+    if (isCloudinaryPdf(m.url, m.tipo)) {
+      setPdfErro(null);
+      setPdfPage(1);
+      setPdfLoading(true);
+      setPdfView(m);
       return;
     }
     window.open(m.url, "_blank", "noopener,noreferrer");
@@ -282,28 +300,28 @@ export default function TrabalhosInternosPage() {
               <p className="text-muted-foreground text-sm">Nenhum grau disponível no seu acesso.</p>
             </div>
           ) : (
-            secoes.map((s) => (
-              <button
-                key={s.grau}
-                type="button"
-                onClick={() => setGrauAberto(s.grau)}
-                className={cn(
-                  "w-full flex items-center gap-4 rounded-xl border bg-gradient-to-br px-4 py-5 text-left transition-transform active:scale-[0.98] hover:brightness-105 min-h-[88px]",
-                  s.cor
-                )}
-              >
-                <div className="h-14 w-14 rounded-xl bg-background/80 border flex items-center justify-center shrink-0 shadow-sm">
-                  <BookOpen className="h-7 w-7 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-lg font-semibold leading-tight">{s.titulo}</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    {s.sub} · {s.itens.length} pasta{s.itens.length === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <ChevronRight className="h-6 w-6 text-muted-foreground shrink-0" />
-              </button>
-            ))
+            <ul className="rounded-xl border bg-card divide-y overflow-hidden">
+              {secoes.map((s) => (
+                <li key={s.grau}>
+                  <button
+                    type="button"
+                    onClick={() => setGrauAberto(s.grau)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-muted/50 hover:bg-muted/30 transition-colors min-h-[60px]"
+                  >
+                    <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm sm:text-[15px]">{s.titulo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.sub} · {s.itens.length} pasta{s.itens.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/70 shrink-0" />
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
@@ -432,15 +450,25 @@ export default function TrabalhosInternosPage() {
                       <MidiaIcon tipo={m.tipo} />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{m.nome || `Arquivo ${i + 1}`}</p>
-                        <p className="text-[11px] text-muted-foreground uppercase">
-                          {m.tipo === "image" ? "Imagem · tocar para ver" : "PDF · tocar para abrir"}
+                        <p className="text-[11px] text-muted-foreground">
+                          {m.tipo === "image" && !isCloudinaryPdf(m.url, m.tipo)
+                            ? "Imagem · tocar para ver"
+                            : "PDF · tocar para ler"}
                         </p>
                       </div>
                       <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
                     </button>
                     <a
-                      href={urlDownload(m.url, m.nome)}
-                      download={m.nome || true}
+                      href={
+                        isCloudinaryPdf(m.url, m.tipo)
+                          ? cloudinaryPdfPageUrl(m.url, 1) ?? m.url
+                          : urlDownload(m.url, m.nome)
+                      }
+                      download={
+                        isCloudinaryPdf(m.url, m.tipo)
+                          ? `${m.nome || "documento"}-p1.png`
+                          : m.nome || true
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center px-4 border-l min-w-[52px] text-muted-foreground hover:text-foreground hover:bg-muted/40"
@@ -493,6 +521,125 @@ export default function TrabalhosInternosPage() {
               className="h-full w-full object-contain p-2 pt-14 pb-8"
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Leitor de PDF (páginas via Cloudinary — contorna bloqueio 401 do free) */}
+      <Dialog
+        open={!!pdfView}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPdfView(null);
+            setPdfErro(null);
+          }
+        }}
+      >
+        <DialogContent
+          className="p-0 gap-0 max-w-[100vw] w-[100vw] h-[100dvh] rounded-none border-0 bg-zinc-950 flex flex-col"
+          showCloseButton={false}
+        >
+          <div className="flex items-center gap-2 px-2 py-2 border-b border-white/10 shrink-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 text-white hover:bg-white/10"
+              onClick={() => setPdfView(null)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <p className="text-white text-sm font-medium truncate flex-1 min-w-0">
+              {pdfView?.nome ?? "PDF"}
+            </p>
+            {pdfPageSrc && (
+              <a
+                href={pdfPageSrc}
+                download={`${pdfView?.nome ?? "pagina"}-p${pdfPage}.png`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-white hover:bg-white/10"
+                aria-label="Baixar página"
+              >
+                <Download className="h-4 w-4" />
+              </a>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-auto flex items-center justify-center p-2 relative min-h-0">
+            {pdfLoading && !pdfErro && (
+              <Loader2 className="h-8 w-8 animate-spin text-white/70 absolute" />
+            )}
+            {pdfErro ? (
+              <div className="text-center px-6 max-w-sm space-y-3">
+                <FileText className="h-10 w-10 text-white/40 mx-auto" />
+                <p className="text-sm text-white/80">{pdfErro}</p>
+                <p className="text-xs text-white/50">
+                  No Cloudinary (grátis), PDF direto fica bloqueado. Estamos corrigindo os arquivos
+                  antigos para leitura por página.
+                </p>
+              </div>
+            ) : pdfPageSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={pdfPageSrc}
+                src={pdfPageSrc}
+                alt={`Página ${pdfPage}`}
+                className={cn(
+                  "max-h-full max-w-full object-contain rounded-sm shadow-lg bg-white",
+                  pdfLoading && "opacity-0"
+                )}
+                onLoad={() => {
+                  setPdfLoading(false);
+                  setPdfErro(null);
+                }}
+                onError={() => {
+                  setPdfLoading(false);
+                  if (pdfPage > 1) {
+                    setPdfPage((p) => Math.max(1, p - 1));
+                    setPdfErro("Fim do documento.");
+                  } else {
+                    setPdfErro(
+                      "Não foi possível abrir este PDF. Arquivo ainda no formato antigo bloqueado."
+                    );
+                  }
+                }}
+              />
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-center gap-4 px-4 py-3 border-t border-white/10 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-10 gap-1"
+              disabled={pdfPage <= 1 || pdfLoading}
+              onClick={() => {
+                setPdfErro(null);
+                setPdfLoading(true);
+                setPdfPage((p) => Math.max(1, p - 1));
+              }}
+            >
+              <ChevronLeft className="h-4 w-4" /> Anterior
+            </Button>
+            <span className="text-white/80 text-sm tabular-nums min-w-[4.5rem] text-center">
+              Pág. {pdfPage}
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-10 gap-1"
+              disabled={pdfLoading || !!pdfErro}
+              onClick={() => {
+                setPdfErro(null);
+                setPdfLoading(true);
+                setPdfPage((p) => p + 1);
+              }}
+            >
+              Próxima <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

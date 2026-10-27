@@ -28,7 +28,10 @@ export async function uploadMedia(
   fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   fd.append("folder", folder);
 
-  const resource = tipo === "image" ? "image" : tipo === "pdf" || tipo === "other" ? "raw" : "auto";
+  // PDF como "image": no free do Cloudinary a entrega raw/PDF costuma dar 401;
+  // como image dá pra visualizar página a página (pg_1, pg_2…).
+  const resource =
+    tipo === "image" || tipo === "pdf" ? "image" : tipo === "other" ? "raw" : "auto";
   const res = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resource}/upload`,
     { method: "POST", body: fd }

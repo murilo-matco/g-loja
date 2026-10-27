@@ -94,7 +94,8 @@ async function uploadFile(filePath: string, folder: string): Promise<{ url: stri
   fd.append("upload_preset", UPLOAD_PRESET);
   fd.append("folder", folder);
 
-  const resource = tipo === "image" ? "image" : "raw";
+  // PDF como image: no free, /raw/upload costuma dar 401 na entrega.
+  const resource = "image";
   const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resource}/upload`, {
     method: "POST",
     body: fd,
