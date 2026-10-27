@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Libre_Franklin } from "next/font/google";
 import Link from "next/link";
 import { PORTAL } from "@/lib/entidades";
+import { SiteIrmaoLink } from "@/components/site-irmao-link";
 
 const display = Cormorant_Garamond({
   subsets: ["latin"],
@@ -46,12 +47,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             <Link href="/frafem" className="hover:text-white transition-colors hidden md:inline">
               FRAFEM
             </Link>
-            <Link
-              href="/login"
-              className="rounded-sm border border-[#0ea5e9]/50 bg-[#0ea5e9]/15 px-3 py-1.5 text-[#f3e9d0] hover:bg-[#0ea5e9]/25 transition-colors"
-            >
-              Área do Irmão
-            </Link>
+            <SiteIrmaoLink className="rounded-sm border border-[#0ea5e9]/50 bg-[#0ea5e9]/15 px-3 py-1.5 text-[#f3e9d0] hover:bg-[#0ea5e9]/25 transition-colors" />
           </nav>
         </div>
       </header>

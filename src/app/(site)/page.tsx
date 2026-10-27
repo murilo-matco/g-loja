@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ENTIDADES, PORTAL } from "@/lib/entidades";
+import { SiteIrmaoLink } from "@/components/site-irmao-link";
 
 export default function PortalHomePage() {
   return (
@@ -115,16 +116,11 @@ export default function PortalHomePage() {
               Você é membro da Loja?
             </h2>
             <p className="mt-2 text-sm text-[#f3e9d0]/60 max-w-md">
-              Pastas Aprendizes, Companheiros e Mestres — e a gestão — ficam na Área do Irmão.
+              Os trabalhos internos não aparecem no site público. Entre com CPF + senha
+              para ver a biblioteca conforme o seu grau.
             </p>
           </div>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-sm bg-[#0ea5e9] text-[#0b1220] px-5 py-2.5 text-sm font-semibold hover:bg-[#38bdf8] transition-colors shrink-0"
-          >
-            Área do Irmão
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <SiteIrmaoLink className="inline-flex items-center gap-2 rounded-sm bg-[#0ea5e9] text-[#0b1220] px-5 py-2.5 text-sm font-semibold hover:bg-[#38bdf8] transition-colors shrink-0" />
         </div>
       </section>
     </div>

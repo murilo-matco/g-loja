@@ -72,7 +72,9 @@ export default function LoginPage() {
   const [cadSucesso, setCadSucesso] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn()) router.replace("/app");
+    if (!isLoggedIn()) return;
+    const session = getSession();
+    router.replace(session ? homePathForCargo(session.cargo) : "/app/trabalhos");
   }, [router]);
 
   function handleIdChange(value: string) {
