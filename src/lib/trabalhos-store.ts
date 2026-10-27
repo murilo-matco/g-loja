@@ -13,13 +13,14 @@ import {
 } from "firebase/firestore";
 import { getLojaId, getSession } from "@/lib/auth-store";
 import { uploadMedia, type MediaTipo } from "@/lib/media-upload";
+import type { EntidadeId } from "@/lib/entidades";
 
 /**
  * grauMinimo:
  *  0 = público (site institucional)
- *  1 = Aprendiz+
- *  2 = Companheiro+
- *  3 = Mestre
+ *  1 = Aprendiz+  (pasta Drive APRENDIZES)
+ *  2 = Companheiro+ (pasta Drive COMPANHEIROS)
+ *  3 = Mestre (pasta Drive MESTRES)
  */
 export type GrauMinimo = 0 | 1 | 2 | 3;
 
@@ -40,6 +41,7 @@ export interface MidiaTrabalho {
 export interface Trabalho {
   id: string;
   lojaId: string;
+  entidade: EntidadeId;
   titulo: string;
   descricao: string | null;
   categoria: CategoriaTrabalho;
@@ -62,9 +64,9 @@ export const CATEGORIA_TRABALHO_LABELS: Record<CategoriaTrabalho, string> = {
 
 export const GRAU_MINIMO_LABELS: Record<GrauMinimo, string> = {
   0: "Público (site)",
-  1: "Aprendiz ou superior",
-  2: "Companheiro ou superior",
-  3: "Somente Mestre",
+  1: "APRENDIZES (grau 1+)",
+  2: "COMPANHEIROS (grau 2+)",
+  3: "MESTRES (grau 3)",
 };
 
 const GRAU_NIVEL: Record<string, number> = {
@@ -82,9 +84,11 @@ function tsToString(ts: any): string {
 }
 
 function mapDoc(id: string, data: Record<string, unknown>): Trabalho {
+  const ent = (data.entidade as EntidadeId) || "loja";
   return {
     id,
     lojaId: (data.loja_id as string) ?? "",
+    entidade: ent === "associacao" || ent === "frafem" ? ent : "loja",
     titulo: (data.titulo as string) ?? "",
     descricao: (data.descricao as string | null) ?? null,
     categoria: (data.categoria as CategoriaTrabalho) ?? "OUTRO",
@@ -135,7 +139,10 @@ export async function getTrabalhosInternos(): Promise<Trabalho[]> {
 }
 
 /** Conteúdo liberado no site institucional (sem login). */
-export async function getTrabalhosPublicos(lojaId?: string): Promise<Trabalho[]> {
+export async function getTrabalhosPublicos(
+  lojaId?: string,
+  entidade?: EntidadeId
+): Promise<Trabalho[]> {
   const snap = lojaId
     ? await getDocs(
         query(
@@ -148,7 +155,7 @@ export async function getTrabalhosPublicos(lojaId?: string): Promise<Trabalho[]>
 
   return snap.docs
     .map((d) => mapDoc(d.id, d.data()))
-    .filter((t) => t.grauMinimo === 0 && t.publico)
+    .filter((t) => t.grauMinimo === 0 && t.publico && (!entidade || t.entidade === entidade))
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
 }
 
@@ -156,12 +163,14 @@ export async function criarAcaoPublica(input: {
   titulo: string;
   descricao?: string | null;
   categoria?: CategoriaTrabalho;
+  entidade?: EntidadeId;
   files?: File[];
 }): Promise<Trabalho> {
   return criarTrabalho({
     titulo: input.titulo,
     descricao: input.descricao,
     categoria: input.categoria ?? "ACAO",
+    entidade: input.entidade ?? "loja",
     grauMinimo: 0,
     publico: true,
     files: input.files,
@@ -180,6 +189,7 @@ export async function criarTrabalho(input: {
   categoria: CategoriaTrabalho;
   grauMinimo: GrauMinimo;
   publico: boolean;
+  entidade?: EntidadeId;
   files?: File[];
 }): Promise<Trabalho> {
   const lojaId = getLojaId();
@@ -193,9 +203,11 @@ export async function criarTrabalho(input: {
   }
 
   const capaUrl = midias.find((m) => m.tipo === "image")?.url ?? null;
+  const entidade = input.entidade ?? "loja";
 
   const ref = await addDoc(collection(db, "trabalhos"), {
     loja_id: lojaId,
+    entidade,
     titulo: input.titulo.trim(),
     descricao: input.descricao?.trim() || null,
     categoria: input.categoria,

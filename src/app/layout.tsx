@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "G-Loja | Loja Maçônica",
+  title: "Fraternidade Adonhiram | Portal",
   description:
-    "Site institucional da Loja e área reservada aos irmãos — ações, trabalhos, presença e gestão.",
+    "Portal eletrônico — Loja, Associação Estrada de Damasco e FRAFEM · Praia Grande.",
 };
 
 export default function RootLayout({

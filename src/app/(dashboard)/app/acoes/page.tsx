@@ -49,6 +49,7 @@ import {
   type CategoriaTrabalho,
   type Trabalho,
 } from "@/lib/trabalhos-store";
+import { ENTIDADES, type EntidadeId } from "@/lib/entidades";
 import { cn } from "@/lib/utils";
 
 const CATS_PUBLICAS: CategoriaTrabalho[] = ["ACAO", "EVENTO", "FOTO", "OUTRO"];
@@ -66,6 +67,7 @@ export default function AcoesPage() {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [categoria, setCategoria] = useState<CategoriaTrabalho>("ACAO");
+  const [entidade, setEntidade] = useState<EntidadeId>("loja");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
@@ -82,6 +84,7 @@ export default function AcoesPage() {
     setTitulo("");
     setDescricao("");
     setCategoria("ACAO");
+    setEntidade("loja");
     setFiles([]);
     setPreviews((prev) => {
       prev.forEach((u) => URL.revokeObjectURL(u));
@@ -106,7 +109,7 @@ export default function AcoesPage() {
     setSaving(true);
     setError(null);
     try {
-      await criarAcaoPublica({ titulo, descricao, categoria, files });
+      await criarAcaoPublica({ titulo, descricao, categoria, entidade, files });
       setDialogOpen(false);
       resetForm();
       await reload();
@@ -156,8 +159,8 @@ export default function AcoesPage() {
               Ações no site
             </h1>
             <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-              Tudo que você publicar aqui aparece na home pública — sem login.
-              Use para ações sociais, eventos, fotos da Loja e o que quiser mostrar ao Oriente.
+              Publique para a <strong>Loja</strong>, a <strong>Associação</strong> ou a{" "}
+              <strong>FRAFEM</strong>. Cada uma tem sua página no portal — sem login para o público.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Badge variant="secondary" className="gap-1">
@@ -228,9 +231,14 @@ export default function AcoesPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base line-clamp-2">{t.titulo}</CardTitle>
-                  <Badge variant="outline" className="shrink-0 text-[10px]">
-                    {CATEGORIA_TRABALHO_LABELS[t.categoria]}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <Badge variant="outline" className="text-[10px]">
+                      {ENTIDADES.find((x) => x.id === t.entidade)?.nomeCurto ?? "Loja"}
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {CATEGORIA_TRABALHO_LABELS[t.categoria]}
+                    </Badge>
+                  </div>
                 </div>
                 {t.descricao && (
                   <CardDescription className="line-clamp-2">{t.descricao}</CardDescription>
@@ -300,23 +308,43 @@ export default function AcoesPage() {
                   placeholder="Conte o que aconteceu, para quem e o impacto..."
                 />
               </div>
-              <div className="grid gap-2">
-                <Label>Tipo</Label>
-                <Select
-                  value={categoria}
-                  onValueChange={(v) => setCategoria((v ?? "ACAO") as CategoriaTrabalho)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATS_PUBLICAS.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {CATEGORIA_TRABALHO_LABELS[c]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label>Onde publicar *</Label>
+                  <Select
+                    value={entidade}
+                    onValueChange={(v) => setEntidade((v ?? "loja") as EntidadeId)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENTIDADES.map((ent) => (
+                        <SelectItem key={ent.id} value={ent.id}>
+                          {ent.nomeCurto}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Tipo</Label>
+                  <Select
+                    value={categoria}
+                    onValueChange={(v) => setCategoria((v ?? "ACAO") as CategoriaTrabalho)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATS_PUBLICAS.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {CATEGORIA_TRABALHO_LABELS[c]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label>Fotos</Label>
