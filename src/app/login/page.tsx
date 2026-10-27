@@ -22,6 +22,8 @@ import {
   cadastrarLoja,
   formatIdentificador,
   formatCNPJ,
+  homePathForCargo,
+  getSession,
 } from "@/lib/auth-store";
 import {
   ArrowLeft,
@@ -101,7 +103,8 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/app");
+    const session = getSession();
+    router.replace(session ? homePathForCargo(session.cargo) : "/app");
   }
 
   async function handleTrocarSenha() {
@@ -126,7 +129,8 @@ export default function LoginPage() {
     }
 
     setShowTrocaSenha(false);
-    router.replace("/app");
+    const session = getSession();
+    router.replace(session ? homePathForCargo(session.cargo) : "/app");
   }
 
   async function handleCadastro(e: React.FormEvent) {
@@ -190,8 +194,8 @@ export default function LoginPage() {
             G
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">G-Loja</h1>
-        <p className="text-sm text-slate-400 mt-1">Sistema de Gestão para Lojas Maçônicas</p>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Fraternidade Adonhiram</h1>
+        <p className="text-sm text-slate-400 mt-1">Portal · Área do Irmão · Praia Grande</p>
       </div>
 
       {/* ── LOGIN ── */}
@@ -200,10 +204,12 @@ export default function LoginPage() {
           <CardHeader className="pb-4 pt-6 px-6">
             <div className="flex items-center gap-2 text-slate-300 mb-1">
               <ShieldCheck className="h-5 w-5 text-emerald-400" />
-              <span className="text-sm font-medium">Acesso Restrito</span>
+              <span className="text-sm font-medium">Área do Irmão</span>
             </div>
             <p className="text-xs text-slate-500">
-              Entre com o CNPJ da Loja (Venerável) ou seu CPF (demais cargos).
+              <strong className="text-slate-400">CNPJ</strong> = administração da Loja.{" "}
+              <strong className="text-slate-400">CPF</strong> = irmão (trabalhos por grau).
+              Peça a senha ao Venerável / Secretaria.
             </p>
           </CardHeader>
           <CardContent className="px-6 pb-6">

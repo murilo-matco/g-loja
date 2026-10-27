@@ -78,7 +78,7 @@ type StatusFilterValue = (typeof STATUS_FILTER_VALUES)[number];
 
 const CARGOS_COM_ACESSO: CargoSistema[] = [
   "CHANCELER", "TESOUREIRO", "SECRETARIO", "ORADOR",
-  "PRIMEIRO_VIGILANTE", "SEGUNDO_VIGILANTE",
+  "PRIMEIRO_VIGILANTE", "SEGUNDO_VIGILANTE", "MEMBRO",
 ];
 
 const SIDEBAR_LABELS: Record<string, string> = {
@@ -191,9 +191,10 @@ export function IrmaosClient() {
     return usuarios.find((u) => u.cpf.replace(/\D/g, "") === clean);
   }
 
-  function cargoToSistema(cargo: string): CargoSistema | null {
+  function cargoToSistema(cargo: string): CargoSistema {
+    if (cargo === "VENERAVEL") return "VENERAVEL";
     if (CARGOS_COM_ACESSO.includes(cargo as CargoSistema)) return cargo as CargoSistema;
-    return null;
+    return "MEMBRO";
   }
 
   async function handleConcederAcesso() {
@@ -203,7 +204,7 @@ export function IrmaosClient() {
       setErroAcesso("A senha deve ter ao menos 4 caracteres.");
       return;
     }
-    const cargo = cargoToSistema(showConcederAcesso.cargo) ?? "CHANCELER";
+    const cargo = cargoToSistema(showConcederAcesso.cargo);
     const result = await criarUsuario({ cpf: showConcederAcesso.cpf, nome: showConcederAcesso.nome, cargo, senha: senhaAcesso.trim() });
     if (!result.ok) { setErroAcesso(result.erro); return; }
     setShowConcederAcesso(null);
@@ -466,18 +467,23 @@ export function IrmaosClient() {
                 </p>
               </div>
 
-              {cargoToSistema(showConcederAcesso.cargo) && (
-                <div className="rounded-md bg-muted/50 px-4 py-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Abas com acesso ({CARGO_SISTEMA_LABELS[cargoToSistema(showConcederAcesso.cargo)!]}):</p>
-                  <div className="flex flex-wrap gap-1">
-                    {PERMISSOES[cargoToSistema(showConcederAcesso.cargo)!].map((p) => (
-                      <Badge key={p} variant="secondary" className="text-[10px]">
-                        {SIDEBAR_LABELS[p] ?? p}
-                      </Badge>
-                    ))}
-                  </div>
+              <div className="rounded-md bg-muted/50 px-4 py-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                  Abas com acesso ({CARGO_SISTEMA_LABELS[cargoToSistema(showConcederAcesso.cargo)]}):
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {PERMISSOES[cargoToSistema(showConcederAcesso.cargo)].map((p) => (
+                    <Badge key={p} variant="secondary" className="text-[10px]">
+                      {SIDEBAR_LABELS[p] ?? p}
+                    </Badge>
+                  ))}
                 </div>
-              )}
+                {cargoToSistema(showConcederAcesso.cargo) === "MEMBRO" && (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Irmão comum: vê só a biblioteca de trabalhos conforme o grau (Aprendiz / Companheiro / Mestre).
+                  </p>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="senha-acesso">Senha para primeiro acesso</Label>

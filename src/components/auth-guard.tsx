@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { isLoggedIn, temPermissao } from "@/lib/auth-store";
+import { getSession, homePathForCargo, isLoggedIn, temPermissao } from "@/lib/auth-store";
 import { cleanupOldData } from "@/lib/cleanup";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,8 +50,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             Você não tem permissão para acessar esta página.
             Contate o Venerável Mestre para solicitar acesso.
           </p>
-          <Button variant="outline" onClick={() => router.replace("/app")}>
-            Voltar ao Dashboard
+          <Button
+            variant="outline"
+            onClick={() => {
+              const s = getSession();
+              router.replace(s ? homePathForCargo(s.cargo) : "/login");
+            }}
+          >
+            Voltar
           </Button>
         </div>
       </div>

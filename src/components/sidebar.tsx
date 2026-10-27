@@ -128,7 +128,9 @@ function SidebarContent({
       <Separator />
 
       <div className="py-3 px-2 space-y-1">
-        {bottomNav.map((item) => {
+        {bottomNav
+          .filter((item) => item.href === "/" || temPermissao(item.href))
+          .map((item) => {
           const isActive =
             item.href === "/"
               ? false

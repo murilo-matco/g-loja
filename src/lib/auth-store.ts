@@ -24,7 +24,8 @@ export type CargoSistema =
   | "SECRETARIO"
   | "ORADOR"
   | "PRIMEIRO_VIGILANTE"
-  | "SEGUNDO_VIGILANTE";
+  | "SEGUNDO_VIGILANTE"
+  | "MEMBRO";
 
 export const CARGO_SISTEMA_LABELS: Record<CargoSistema, string> = {
   VENERAVEL: "Venerável Mestre",
@@ -34,6 +35,7 @@ export const CARGO_SISTEMA_LABELS: Record<CargoSistema, string> = {
   ORADOR: "Orador",
   PRIMEIRO_VIGILANTE: "1º Vigilante",
   SEGUNDO_VIGILANTE: "2º Vigilante",
+  MEMBRO: "Irmão (acesso aos trabalhos)",
 };
 
 export const PERMISSOES: Record<CargoSistema, string[]> = {
@@ -44,7 +46,15 @@ export const PERMISSOES: Record<CargoSistema, string[]> = {
   ORADOR: ["/app", "/app/sessoes", "/app/acoes", "/app/trabalhos", "/app/relatorios"],
   PRIMEIRO_VIGILANTE: ["/app", "/app/irmaos", "/app/sessoes", "/app/presenca", "/app/acoes", "/app/trabalhos", "/app/relatorios"],
   SEGUNDO_VIGILANTE: ["/app", "/app/sessoes", "/app/presenca", "/app/acoes", "/app/trabalhos"],
+  /** Irmão comum: só biblioteca de trabalhos (por grau). */
+  MEMBRO: ["/app/trabalhos"],
 };
+
+/** Destino após login conforme o cargo. */
+export function homePathForCargo(cargo: CargoSistema): string {
+  if (cargo === "MEMBRO") return "/app/trabalhos";
+  return "/app";
+}
 
 // ─── Types ──────────────────────────────────────────────────
 
