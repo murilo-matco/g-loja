@@ -28,8 +28,9 @@ export async function uploadMedia(
   fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   fd.append("folder", folder);
 
+  const resource = tipo === "image" ? "image" : tipo === "pdf" || tipo === "other" ? "raw" : "auto";
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`,
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resource}/upload`,
     { method: "POST", body: fd }
   );
 
