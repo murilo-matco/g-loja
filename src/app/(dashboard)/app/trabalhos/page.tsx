@@ -89,7 +89,8 @@ export default function TrabalhosInternosPage() {
   const [error, setError] = useState<string | null>(null);
   const [aberto, setAberto] = useState<Trabalho | null>(null);
   const [lightbox, setLightbox] = useState<MidiaTrabalho | null>(null);
-  const [filtroGrau, setFiltroGrau] = useState<"todos" | "1" | "2" | "3">("todos");
+  /** null = hub com as 3 pastas de grau; 1|2|3 = lista daquela pasta */
+  const [grauAberto, setGrauAberto] = useState<1 | 2 | 3 | null>(null);
 
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -113,11 +114,26 @@ export default function TrabalhosInternosPage() {
     reload();
   }, [reload]);
 
-  const filtrada = useMemo(() => {
-    if (filtroGrau === "todos") return lista;
-    const g = Number(filtroGrau);
-    return lista.filter((t) => t.grauMinimo === g);
-  }, [lista, filtroGrau]);
+  const secoes = useMemo(() => {
+    const defs: { grau: 1 | 2 | 3; titulo: string; sub: string; cor: string }[] = [
+      { grau: 1, titulo: "Aprendizes", sub: "1º grau", cor: "from-sky-600/20 to-sky-900/10 border-sky-500/30" },
+      { grau: 2, titulo: "Companheiros", sub: "2º grau", cor: "from-amber-600/20 to-amber-900/10 border-amber-500/30" },
+      { grau: 3, titulo: "Mestres", sub: "3º grau", cor: "from-emerald-600/20 to-emerald-900/10 border-emerald-500/30" },
+    ];
+    return defs
+      .filter((s) => nivel >= s.grau)
+      .map((s) => ({
+        ...s,
+        itens: lista.filter((t) => t.grauMinimo === s.grau),
+      }));
+  }, [lista, nivel]);
+
+  const listaGrau = useMemo(() => {
+    if (!grauAberto) return [];
+    return lista.filter((t) => t.grauMinimo === grauAberto);
+  }, [lista, grauAberto]);
+
+  const secaoAtual = secoes.find((s) => s.grau === grauAberto);
 
   function resetForm() {
     setTitulo("");
@@ -216,16 +232,18 @@ export default function TrabalhosInternosPage() {
               Trabalhos
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Toque numa pasta para ver e baixar os arquivos.{" "}
+              {grauAberto
+                ? "Toque numa pasta para ver e baixar os arquivos."
+                : "Escolha o grau: Aprendizes, Companheiros ou Mestres."}{" "}
               <span className="whitespace-nowrap">
-                Acesso:{" "}
+                Seu acesso:{" "}
                 <Badge variant="outline" className="align-middle">
                   {nivel >= 3 ? "Mestre" : nivel === 2 ? "Companheiro" : "Aprendiz"}
                 </Badge>
               </span>
             </p>
           </div>
-          {podeGerenciar && (
+          {podeGerenciar && !grauAberto && (
             <Button
               size="sm"
               className="gap-1.5 shrink-0 h-10"
@@ -235,12 +253,12 @@ export default function TrabalhosInternosPage() {
               }}
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden xs:inline">Novo</span>
+              Novo
             </Button>
           )}
         </div>
 
-        {podeGerenciar && (
+        {podeGerenciar && !grauAberto && (
           <p className="text-xs text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2">
             Site público ={" "}
             <Link href="/app/acoes" className="text-primary font-medium hover:underline">
@@ -249,79 +267,98 @@ export default function TrabalhosInternosPage() {
             . Aqui é só interno.
           </p>
         )}
-
-        {/* Filtros — grandes no celular */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-          {(
-            [
-              ["todos", "Todos"],
-              ["1", "Aprendizes"],
-              ["2", "Companheiros"],
-              ["3", "Mestres"],
-            ] as const
-          )
-            .filter(([v]) => v === "todos" || nivel >= Number(v))
-            .map(([v, label]) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setFiltroGrau(v)}
-                className={cn(
-                  "shrink-0 rounded-full px-4 py-2 text-sm font-medium border transition-colors",
-                  filtroGrau === v
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground hover:bg-muted"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-        </div>
       </div>
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
       )}
 
-      {filtrada.length === 0 ? (
-        <div className="rounded-xl border bg-card py-14 text-center space-y-3 px-4">
-          <Lock className="h-10 w-10 mx-auto text-muted-foreground/40" />
-          <p className="text-muted-foreground text-sm">Nenhum trabalho no seu grau ainda.</p>
+      {/* Hub: 3 pastas de grau */}
+      {!grauAberto && (
+        <div className="grid gap-3">
+          {secoes.length === 0 ? (
+            <div className="rounded-xl border bg-card py-14 text-center space-y-3 px-4">
+              <Lock className="h-10 w-10 mx-auto text-muted-foreground/40" />
+              <p className="text-muted-foreground text-sm">Nenhum grau disponível no seu acesso.</p>
+            </div>
+          ) : (
+            secoes.map((s) => (
+              <button
+                key={s.grau}
+                type="button"
+                onClick={() => setGrauAberto(s.grau)}
+                className={cn(
+                  "w-full flex items-center gap-4 rounded-xl border bg-gradient-to-br px-4 py-5 text-left transition-transform active:scale-[0.98] hover:brightness-105 min-h-[88px]",
+                  s.cor
+                )}
+              >
+                <div className="h-14 w-14 rounded-xl bg-background/80 border flex items-center justify-center shrink-0 shadow-sm">
+                  <BookOpen className="h-7 w-7 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-semibold leading-tight">{s.titulo}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {s.sub} · {s.itens.length} pasta{s.itens.length === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <ChevronRight className="h-6 w-6 text-muted-foreground shrink-0" />
+              </button>
+            ))
+          )}
         </div>
-      ) : (
-        <ul className="rounded-xl border bg-card divide-y overflow-hidden">
-          {filtrada.map((t) => {
-            const n = t.midias?.length ?? 0;
-            return (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  onClick={() => setAberto(t)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-muted/60 hover:bg-muted/40 transition-colors min-h-[64px]"
-                >
-                  <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden shrink-0 flex items-center justify-center">
-                    {t.capaUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={t.capaUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <BookOpen className="h-5 w-5 text-muted-foreground/50" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm sm:text-base leading-snug line-clamp-2">
-                      {t.titulo.replace(/^\[(APRENDIZES|COMPANHEIROS|MESTRES)\]\s*/i, "")}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {GRAU_MINIMO_LABELS[t.grauMinimo].split(" ")[0]} · {n} arquivo
-                      {n === 1 ? "" : "s"}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      )}
+
+      {/* Lista dentro do grau */}
+      {grauAberto && (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setGrauAberto(null)}
+            className="inline-flex items-center gap-1.5 text-sm text-primary font-medium py-1"
+          >
+            ← Voltar aos graus
+          </button>
+          <h2 className="text-lg font-semibold">{secaoAtual?.titulo ?? "Grau"}</h2>
+          {listaGrau.length === 0 ? (
+            <div className="rounded-xl border bg-card py-14 text-center space-y-3 px-4">
+              <Lock className="h-10 w-10 mx-auto text-muted-foreground/40" />
+              <p className="text-muted-foreground text-sm">Nenhuma pasta neste grau ainda.</p>
+            </div>
+          ) : (
+            <ul className="rounded-xl border bg-card divide-y overflow-hidden">
+              {listaGrau.map((t) => {
+                const n = t.midias?.length ?? 0;
+                return (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      onClick={() => setAberto(t)}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-muted/60 hover:bg-muted/40 transition-colors min-h-[64px]"
+                    >
+                      <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                        {t.capaUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={t.capaUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <BookOpen className="h-5 w-5 text-muted-foreground/50" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm sm:text-base leading-snug line-clamp-2">
+                          {t.titulo.replace(/^\[(APRENDIZES|COMPANHEIROS|MESTRES)\]\s*/i, "")}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {n} arquivo{n === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       )}
 
       {/* Detalhe da pasta — full-ish no mobile */}
