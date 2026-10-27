@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
+import { Cormorant_Garamond, Libre_Franklin } from "next/font/google";
 import Link from "next/link";
 
 const display = Cormorant_Garamond({
@@ -8,7 +8,7 @@ const display = Cormorant_Garamond({
   variable: "--font-site-display",
 });
 
-const body = Source_Sans_3({
+const body = Libre_Franklin({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-site-body",

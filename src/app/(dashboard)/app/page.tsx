@@ -23,6 +23,8 @@ import {
   ClipboardCheck,
   Loader2,
   CalendarClock,
+  Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { getIrmaos } from "@/lib/irmaos-store";
 import { getSessoes, type SessaoStore, type TipoSessao } from "@/lib/presenca-store";
@@ -249,6 +251,20 @@ export default function DashboardPage() {
             <CardDescription>Atalhos para as principais funções</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <Link
+              href="/app/acoes"
+              className={cn(buttonVariants(), "w-full justify-start gap-2")}
+            >
+              <Sparkles className="h-4 w-4" />
+              Publicar ação no site
+            </Link>
+            <Link
+              href="/app/trabalhos"
+              className={cn(buttonVariants({ variant: "outline" }), "w-full justify-start gap-2")}
+            >
+              <BookOpen className="h-4 w-4" />
+              Trabalhos internos
+            </Link>
             <Link
               href="/app/irmaos"
               className={cn(buttonVariants({ variant: "outline" }), "w-full justify-start gap-2")}

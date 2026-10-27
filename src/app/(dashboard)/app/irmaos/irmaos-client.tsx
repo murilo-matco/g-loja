@@ -86,6 +86,7 @@ const SIDEBAR_LABELS: Record<string, string> = {
   "/app/irmaos": "Irmãos",
   "/app/sessoes": "Sessões",
   "/app/presenca": "Presença",
+  "/app/acoes": "Ações no site",
   "/app/trabalhos": "Trabalhos",
   "/app/financeiro": "Financeiro",
   "/app/relatorios": "Relatórios",

@@ -121,23 +121,51 @@ export async function getTrabalhos(): Promise<Trabalho[]> {
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
 }
 
+/** Ações / galeria do site (público = true, grau 0). */
+export async function getAcoesSite(): Promise<Trabalho[]> {
+  const all = await getTrabalhos();
+  return all.filter((t) => t.publico && t.grauMinimo === 0);
+}
+
+/** Trabalhos internos (restritos por grau — não vão ao site). */
+export async function getTrabalhosInternos(): Promise<Trabalho[]> {
+  const all = await getTrabalhos();
+  const nivel = getNivelAcessoUsuario();
+  return all.filter((t) => !t.publico && t.grauMinimo >= 1 && podeVerTrabalho(t, nivel));
+}
+
 /** Conteúdo liberado no site institucional (sem login). */
 export async function getTrabalhosPublicos(lojaId?: string): Promise<Trabalho[]> {
-  let q;
-  if (lojaId) {
-    q = query(
-      collection(db, "trabalhos"),
-      where("loja_id", "==", lojaId),
-      where("publico", "==", true)
-    );
-  } else {
-    q = query(collection(db, "trabalhos"), where("publico", "==", true));
-  }
-  const snap = await getDocs(q);
+  const snap = lojaId
+    ? await getDocs(
+        query(
+          collection(db, "trabalhos"),
+          where("loja_id", "==", lojaId),
+          where("publico", "==", true)
+        )
+      )
+    : await getDocs(query(collection(db, "trabalhos"), where("publico", "==", true)));
+
   return snap.docs
     .map((d) => mapDoc(d.id, d.data()))
-    .filter((t) => t.grauMinimo === 0)
+    .filter((t) => t.grauMinimo === 0 && t.publico)
     .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+}
+
+export async function criarAcaoPublica(input: {
+  titulo: string;
+  descricao?: string | null;
+  categoria?: CategoriaTrabalho;
+  files?: File[];
+}): Promise<Trabalho> {
+  return criarTrabalho({
+    titulo: input.titulo,
+    descricao: input.descricao,
+    categoria: input.categoria ?? "ACAO",
+    grauMinimo: 0,
+    publico: true,
+    files: input.files,
+  });
 }
 
 export async function getTrabalho(id: string): Promise<Trabalho | null> {

@@ -93,18 +93,22 @@ export default function SiteHomePage() {
               <Loader2 className="h-8 w-8 animate-spin text-[#c4a35a]" />
             </div>
           ) : trabalhos.length === 0 ? (
-            <div className="rounded-sm border border-white/10 bg-white/[0.03] py-20 text-center">
-              <ImageIcon className="h-10 w-10 mx-auto text-[#c4a35a]/40 mb-4" />
+            <div className="rounded-sm border border-white/10 bg-white/[0.03] py-20 text-center space-y-3 px-4">
+              <ImageIcon className="h-10 w-10 mx-auto text-[#c4a35a]/40" />
               <p className="text-[#f3e9d0]/60 text-sm">
-                Em breve publicaremos as primeiras ações aqui.
+                Ainda não há ações publicadas.
+              </p>
+              <p className="text-xs text-[#f3e9d0]/40 max-w-sm mx-auto">
+                Irmãos: entre na Área do Irmão → menu <span className="text-[#c4a35a]">Ações no site</span> → Publicar ação.
               </p>
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {trabalhos.map((t, i) => (
-                <article
+                <Link
                   key={t.id}
-                  className="group overflow-hidden rounded-sm border border-white/8 bg-white/[0.03] hover:border-[#c4a35a]/35 transition-colors"
+                  href={`/acao/${t.id}`}
+                  className="group overflow-hidden rounded-sm border border-white/8 bg-white/[0.03] hover:border-[#c4a35a]/35 transition-colors block"
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
                   <div className="aspect-[16/10] overflow-hidden bg-[#121a2e]">
@@ -126,7 +130,7 @@ export default function SiteHomePage() {
                       {CATEGORIA_TRABALHO_LABELS[t.categoria]}
                     </p>
                     <h3
-                      className="text-xl text-[#f3e9d0] leading-snug"
+                      className="text-xl text-[#f3e9d0] leading-snug group-hover:text-[#c4a35a] transition-colors"
                       style={{ fontFamily: "var(--font-site-display), serif" }}
                     >
                       {t.titulo}
@@ -137,7 +141,7 @@ export default function SiteHomePage() {
                       </p>
                     )}
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           )}

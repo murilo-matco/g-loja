@@ -37,13 +37,13 @@ export const CARGO_SISTEMA_LABELS: Record<CargoSistema, string> = {
 };
 
 export const PERMISSOES: Record<CargoSistema, string[]> = {
-  VENERAVEL: ["/app", "/app/irmaos", "/app/sessoes", "/app/presenca", "/app/financeiro", "/app/relatorios", "/app/trabalhos", "/app/configuracoes"],
-  CHANCELER: ["/app", "/app/presenca", "/app/trabalhos"],
+  VENERAVEL: ["/app", "/app/irmaos", "/app/sessoes", "/app/presenca", "/app/acoes", "/app/trabalhos", "/app/financeiro", "/app/relatorios", "/app/configuracoes"],
+  CHANCELER: ["/app", "/app/presenca", "/app/acoes", "/app/trabalhos"],
   TESOUREIRO: ["/app", "/app/financeiro"],
-  SECRETARIO: ["/app", "/app/irmaos", "/app/sessoes", "/app/relatorios", "/app/trabalhos"],
-  ORADOR: ["/app", "/app/sessoes", "/app/relatorios", "/app/trabalhos"],
-  PRIMEIRO_VIGILANTE: ["/app", "/app/irmaos", "/app/sessoes", "/app/presenca", "/app/relatorios", "/app/trabalhos"],
-  SEGUNDO_VIGILANTE: ["/app", "/app/sessoes", "/app/presenca", "/app/trabalhos"],
+  SECRETARIO: ["/app", "/app/irmaos", "/app/sessoes", "/app/acoes", "/app/trabalhos", "/app/relatorios"],
+  ORADOR: ["/app", "/app/sessoes", "/app/acoes", "/app/trabalhos", "/app/relatorios"],
+  PRIMEIRO_VIGILANTE: ["/app", "/app/irmaos", "/app/sessoes", "/app/presenca", "/app/acoes", "/app/trabalhos", "/app/relatorios"],
+  SEGUNDO_VIGILANTE: ["/app", "/app/sessoes", "/app/presenca", "/app/acoes", "/app/trabalhos"],
 };
 
 // ─── Types ──────────────────────────────────────────────────

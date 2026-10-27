@@ -11,6 +11,7 @@ import {
   Wallet,
   FileBarChart,
   BookOpen,
+  Sparkles,
   Settings,
   ChevronLeft,
   Menu,
@@ -30,10 +31,11 @@ import { useSidebar } from "@/components/sidebar-context";
 
 const allNavigation = [
   { name: "Dashboard", href: "/app", icon: LayoutDashboard },
+  { name: "Ações no site", href: "/app/acoes", icon: Sparkles },
+  { name: "Trabalhos", href: "/app/trabalhos", icon: BookOpen },
   { name: "Irmãos", href: "/app/irmaos", icon: Users },
   { name: "Sessões", href: "/app/sessoes", icon: CalendarDays },
   { name: "Presença", href: "/app/presenca", icon: ClipboardCheck },
-  { name: "Trabalhos", href: "/app/trabalhos", icon: BookOpen },
   { name: "Financeiro", href: "/app/financeiro", icon: Wallet },
   { name: "Relatórios", href: "/app/relatorios", icon: FileBarChart },
 ];
